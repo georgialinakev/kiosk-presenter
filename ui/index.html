@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- HOST: React is vendored; support.js skips its CDN load when window.React exists. -->
+<script src="vendor/react.production.min.js"></script>
+<script src="vendor/react-dom.production.min.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="tokens.css">
+<script src="config.js"></script>
+<script src="strings.js"></script>
+<script src="mock-data.js"></script>
+<style>
+html:has([data-kiosk-standalone]), body:has([data-kiosk-standalone]) { margin: 0; height: 100%; overflow: hidden; background: #1a1a2e; touch-action: pan-x pan-y; overscroll-behavior: none; }
+[data-kiosk], [data-kiosk] * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+[data-kiosk] img { -webkit-user-drag: none; pointer-events: none; }
+[data-kiosk] button { font: inherit; color: inherit; margin: 0; -webkit-appearance: none; appearance: none; }
+[data-kiosk] button:disabled { cursor: default; }
+[data-kiosk] :focus { outline: none; }
+[data-kiosk] :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+[data-kiosk] [data-scroll] { scrollbar-width: none; }
+[data-kiosk][data-mouse="1"] [data-scroll] { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+[data-kiosk] h1, [data-kiosk] h2, [data-kiosk] h3, [data-kiosk] p, [data-kiosk] dl, [data-kiosk] dd, [data-kiosk] ul { margin: 0; padding: 0; }
+@keyframes kioskDot { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+</style>
+</helmet>
+<div ref="{{ rootRef }}" data-kiosk="1" data-kiosk-standalone="{{ standaloneAttr }}" data-accent="{{ accentName }}" data-motion="{{ motionAttr }}" data-mouse="{{ mouseAttr }}" style="position: absolute; inset: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); font-size: var(--fs-body); line-height: 1.4; cursor: {{ cursor }};">
+<sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+
+<sc-if value="{{ showLibrary }}" hint-placeholder-val="{{ true }}">
+<div data-layer="library" style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+  <header style="flex: none; width: 100%; max-width: calc(1432px + 2 * var(--page-x)); margin: 0 auto; padding: 32px var(--page-x) 24px; display: flex; align-items: center; gap: 24px;">
+    <div onPointerDown="{{ logoDown }}" onPointerUp="{{ logoUp }}" onPointerLeave="{{ logoUp }}" onPointerCancel="{{ logoUp }}" style="flex: none; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; touch-action: none;">
+      <sc-if value="{{ hasLogo }}"><img src="{{ logoSrc }}" alt="" style="max-width: 100%; max-height: 100%; display: block;"></sc-if>
+      <sc-if value="{{ noLogo }}"><div style="width: 100%; height: 100%; border: 2px dashed var(--line-strong); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 16px; letter-spacing: 0.06em; color: var(--text-muted);">LOGO</div></sc-if>
+    </div>
+    <div style="min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+      <h1 style="font-size: 40px; font-weight: 700; line-height: 1.15; letter-spacing: -0.01em;">{{ brandTitle }}</h1>
+      <p style="font-size: var(--fs-body); color: var(--text-muted);">{{ brandSubtitle }}</p>
+    </div>
+  </header>
+  <div data-scroll="1" ref="{{ scrollRef }}" style="flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y;">
+    <sc-if value="{{ libOk }}" hint-placeholder-val="{{ true }}">
+      <div style="width: 100%; max-width: calc(1432px + 2 * var(--page-x)); margin: 0 auto; padding: 16px var(--page-x) 48px; display: grid; grid-template-columns: {{ gridCols }}; justify-content: center; gap: 32px;">
+        <sc-for list="{{ cards }}" as="d" hint-placeholder-count="6">
+          <button data-deck="{{ d.id }}" aria-label="{{ d.aria }}" onPointerDown="{{ cardDown }}" onPointerMove="{{ cardMove }}" onPointerUp="{{ cardUp }}" onPointerCancel="{{ cardCancel }}" onPointerEnter="{{ cardEnter }}" onPointerLeave="{{ cardLeave }}" onClick="{{ cardClick }}" style="display: flex; flex-direction: column; min-width: 0; padding: 0; text-align: left; border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; background: {{ d.bg }}; transform: {{ d.tf }}; cursor: pointer; transition: transform var(--motion) var(--ease), background-color var(--motion) var(--ease);">
+            <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; flex: none; background: var(--thumb-empty);">
+              <sc-if value="{{ d.hasThumb }}"><img src="{{ d.thumbnail }}" alt="" draggable="false" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;"></sc-if>
+              <sc-if value="{{ d.noThumb }}"><div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted);"><svg viewBox="0 0 24 24" width="56" height="56" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;"><rect x="3" y="4" width="18" height="12" rx="1.5"></rect><path d="M12 16v4"></path><path d="M8 20h8"></path></svg></div></sc-if>
+              <sc-if value="{{ d.hasVideo }}"><span style="position: absolute; top: 16px; left: 16px; display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 12px; border-radius: 18px; background: var(--accent); color: var(--accent-contrast); font-size: var(--fs-meta); font-weight: 700;"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none;"><rect x="2.5" y="6" width="13" height="12" rx="2"></rect><path d="M15.5 10.5 21.5 7v10l-6-3.5"></path></svg>{{ t.library.video }}</span></sc-if>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 20px 24px 24px; min-width: 0; width: 100%;">
+              <span style="font-size: var(--fs-card); font-weight: 700; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty;">{{ d.title }}</span>
+              <sc-if value="{{ d.hasDesc }}"><span style="font-size: var(--fs-body); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.description }}</span></sc-if>
+              <span style="margin-top: auto; padding-top: 4px; font-size: var(--fs-meta); color: var(--text-muted);">{{ d.countText }}</span>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ libMessage }}" hint-placeholder-val="{{ false }}">
+      <div style="min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 48px var(--page-x) 160px; text-align: center;">
+        <div style="width: 112px; height: 112px; border-radius: 56px; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--text-muted);"><svg viewBox="0 0 24 24" width="52" height="52" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;"><rect x="3" y="4" width="18" height="12" rx="1.5"></rect><path d="M12 16v4"></path><path d="M8 20h8"></path></svg></div>
+        <h2 style="font-size: var(--fs-title); font-weight: 700; line-height: 1.2; max-width: 900px; text-wrap: balance;">{{ libMsgTitle }}</h2>
+        <p style="font-size: var(--fs-body); color: var(--text-muted); max-width: 640px;">{{ libMsgBody }}</p>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isOpening }}" hint-placeholder-val="{{ false }}">
+<div data-layer="opening" style="position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; padding: 64px; text-align: center;">
+  <div style="position: relative; width: min(640px, 70%); aspect-ratio: 16 / 9; border-radius: var(--radius-card); overflow: hidden; background: var(--thumb-empty); border: 1px solid var(--line);">
+    <sc-if value="{{ curHasThumb }}"><img src="{{ curThumb }}" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;"></sc-if>
+    <sc-if value="{{ curNoThumb }}"><div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted);"><svg viewBox="0 0 24 24" width="72" height="72" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;"><rect x="3" y="4" width="18" height="12" rx="1.5"></rect><path d="M12 16v4"></path><path d="M8 20h8"></path></svg></div></sc-if>
+  </div>
+  <h2 style="font-size: var(--fs-display); font-weight: 700; line-height: 1.15; max-width: 1200px; text-wrap: balance;">{{ curTitle }}</h2>
+  <sc-if value="{{ openNormal }}">
+    <div role="status" style="display: flex; align-items: center; gap: 16px; min-height: 64px; font-size: var(--fs-card); color: var(--text-muted);">{{ t.opening.opening }}{{ loader }}</div>
+  </sc-if>
+  <sc-if value="{{ openSlow }}">
+    <div role="status" style="display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 760px;">
+      <p style="font-size: var(--fs-card); font-weight: 700;">{{ t.opening.slowTitle }}</p>
+      <p style="font-size: var(--fs-body); color: var(--text-muted);">{{ t.opening.slowBody }}</p>
+      <button data-autofocus="1" onClick="{{ backFromOpening }}" style="margin-top: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: var(--target); padding: 0 32px 0 24px; border: 1px solid var(--line-strong); border-radius: var(--radius-btn); background: var(--surface-raised); color: var(--text); font-size: 22px; font-weight: 700; cursor: pointer; transition: transform var(--motion) var(--ease);" style-hover="border-color: var(--text-muted)" style-active="transform: scale(0.97); background: var(--surface)"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none;"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9v11h14V9"></path><path d="M10 20v-6h4v6"></path></svg>{{ t.opening.back }}</button>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPlayer }}" hint-placeholder-val="{{ false }}">
+<div data-layer="player" onPointerDown="{{ slideDown }}" onPointerUp="{{ slideUp }}" style="position: absolute; inset: 0; background: #000; touch-action: none;">
+  <!-- HOST: in WebView2 the real slideshow and the native WPF strip sit above this layer. -->
+  <sc-if value="{{ mockShow }}"><div style="position: absolute; inset: 0;">
+  <img src="{{ slideSrc }}" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;">
+  <sc-if value="{{ devTag }}"><div style="position: absolute; top: 16px; right: 16px; padding: 6px 10px; border-radius: 6px; background: rgba(0,0,0,.7); color: #fff; font-family: var(--font-mono); font-size: 14px;">MOCK SHOW · PowerPoint + native strip</div></sc-if>
+  <div style="position: absolute; left: 0; right: 0; bottom: 32px; display: flex; justify-content: center; pointer-events: none;">
+    <div data-strip="1" role="toolbar" style="pointer-events: {{ stripPE }}; opacity: {{ stripOpacity }}; transform: {{ stripTf }}; transition: opacity var(--motion) var(--ease), transform var(--motion) var(--ease); display: flex; align-items: center; gap: 16px; height: 88px; padding: 12px; border-radius: 44px; background: var(--strip-bg); border: 1px solid var(--strip-border); color: var(--strip-icon);">
+      <button data-act="home" aria-label="{{ t.player.home }}" onPointerDown="{{ stripDown }}" onPointerUp="{{ stripUp }}" onPointerLeave="{{ stripUp }}" onClick="{{ stripClick }}" style="position: relative; width: 64px; height: 64px; border: none; border-radius: 32px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; transform: {{ homeTf }}; transition: transform var(--motion) var(--ease);" style-hover="background: rgba(255,255,255,0.10)">
+        <span style="position: absolute; inset: 0; border-radius: 32px; background: var(--strip-pressed); opacity: {{ homeP }};"></span>
+        <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true" style="position: relative; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9v11h14V9"></path><path d="M10 20v-6h4v6"></path></svg>
+      </button>
+      <span style="width: 1px; height: 40px; background: var(--strip-border);"></span>
+      <button data-act="prev" aria-label="{{ t.player.prev }}" onPointerDown="{{ stripDown }}" onPointerUp="{{ stripUp }}" onPointerLeave="{{ stripUp }}" onClick="{{ stripClick }}" style="position: relative; width: 64px; height: 64px; border: none; border-radius: 32px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: {{ prevOp }}; transform: {{ prevTf }}; transition: transform var(--motion) var(--ease);" style-hover="background: rgba(255,255,255,0.10)">
+        <span style="position: absolute; inset: 0; border-radius: 32px; background: var(--strip-pressed); opacity: {{ prevP }};"></span>
+        <svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true" style="position: relative; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M15 5l-7 7 7 7"></path></svg>
+      </button>
+      <span aria-live="polite" style="min-width: 104px; text-align: center; font-size: var(--fs-card); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--strip-icon);">{{ counterText }}</span>
+      <button data-act="next" aria-label="{{ t.player.next }}" onPointerDown="{{ stripDown }}" onPointerUp="{{ stripUp }}" onPointerLeave="{{ stripUp }}" onClick="{{ stripClick }}" style="position: relative; width: 64px; height: 64px; border: none; border-radius: 32px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; transform: {{ nextTf }}; transition: transform var(--motion) var(--ease);" style-hover="background: rgba(255,255,255,0.10)">
+        <span style="position: absolute; inset: 0; border-radius: 32px; background: var(--strip-pressed); opacity: {{ nextP }};"></span>
+        <svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true" style="position: relative; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M9 5l7 7-7 7"></path></svg>
+      </button>
+    </div>
+  </div>
+  </div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isEnd }}" hint-placeholder-val="{{ false }}">
+<div data-layer="end" style="position: absolute; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 64px;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 40px; text-align: center; max-width: 1200px;">
+    <div style="position: relative; width: 480px; max-width: 100%; aspect-ratio: 16 / 9; border-radius: var(--radius-card); overflow: hidden; background: var(--thumb-empty); border: 1px solid var(--line);">
+      <sc-if value="{{ curHasThumb }}"><img src="{{ curThumb }}" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;"></sc-if>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <p style="font-size: var(--fs-body); color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;">{{ t.end.kicker }}</p>
+      <h2 style="font-size: var(--fs-display); font-weight: 700; line-height: 1.15; text-wrap: balance;">{{ curTitle }}</h2>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 24px;">
+      <button onClick="{{ replay }}" style="display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 72px; padding: 0 36px 0 28px; border: 1px solid var(--line-strong); border-radius: var(--radius-btn); background: var(--surface-raised); color: var(--text); font-size: 22px; font-weight: 700; cursor: pointer; transition: transform var(--motion) var(--ease);" style-hover="border-color: var(--text-muted)" style-active="transform: scale(0.97); background: var(--surface)"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none;"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"></path><path d="M3 4v5h5"></path></svg>{{ t.end.replay }}</button>
+      <button data-autofocus="1" onClick="{{ goHome }}" style="display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 72px; padding: 0 36px 0 28px; border: none; border-radius: var(--radius-btn); background: var(--accent); color: var(--accent-contrast); font-size: 22px; font-weight: 700; cursor: pointer; transition: transform var(--motion) var(--ease);" style-hover="filter: brightness(1.08)" style-active="transform: scale(0.97); filter: brightness(0.92)"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none;"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect></svg>{{ t.end.home }}</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+<div data-layer="admin" style="position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column;">
+  <header style="flex: none; display: flex; align-items: center; gap: 24px; padding: 28px var(--page-x); border-bottom: 1px solid var(--line);">
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+      <h2 style="font-size: var(--fs-title); font-weight: 700; line-height: 1.2;">{{ t.admin.title }}</h2>
+      <p style="font-size: var(--fs-meta); color: var(--text-muted); font-family: var(--font-mono);">{{ adm.version }}</p>
+    </div>
+    <sc-if value="{{ healthOk }}"><span role="status" style="display: flex; align-items: center; gap: 10px; font-size: var(--fs-body); color: var(--ok); font-weight: 700;"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l3 3 5-6"></path></svg>{{ healthText }}</span></sc-if>
+    <sc-if value="{{ healthBad }}"><span role="status" style="display: flex; align-items: center; gap: 10px; font-size: var(--fs-body); color: var(--danger); font-weight: 700;"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M12 3.5 2.5 20h19z"></path><path d="M12 10v4.5"></path><path d="M12 17.5v.01"></path></svg>{{ healthText }}</span></sc-if>
+    <button data-autofocus="1" data-action="close" onClick="{{ adminClick }}" style="display: inline-flex; align-items: center; gap: 10px; min-height: var(--target); padding: 0 28px 0 20px; border: 1px solid var(--line-strong); border-radius: var(--radius-btn); background: var(--surface-raised); color: var(--text); font-size: var(--fs-body); font-weight: 700; cursor: pointer;" style-hover="border-color: var(--text-muted)" style-active="transform: scale(0.97)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>{{ t.admin.close }}</button>
+  </header>
+  <div data-scroll="1" style="flex: 1; min-height: 0; overflow-y: auto;">
+    <div style="max-width: 1600px; margin: 0 auto; padding: 32px var(--page-x) 48px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 40px; align-items: start;">
+      <section style="display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+        <sc-if value="{{ hasWarnings }}">
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+            <sc-for list="{{ warnings }}" as="w" hint-placeholder-count="0">
+              <div style="display: flex; gap: 16px; padding: 20px 24px; border-radius: var(--radius-card); background: var(--surface); border: 1px solid var(--danger);">
+                <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="flex: none; color: var(--danger); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M12 3.5 2.5 20h19z"></path><path d="M12 10v4.5"></path><path d="M12 17.5v.01"></path></svg>
+                <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                  <strong style="font-size: var(--fs-body);">{{ w.title }}</strong>
+                  <span style="font-size: var(--fs-meta); color: var(--text-muted); font-family: var(--font-mono); overflow-wrap: anywhere;">{{ w.detail }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <h3 style="font-size: var(--fs-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);">{{ t.admin.status }}</h3>
+        <dl style="display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden;">
+          <sc-for list="{{ statusRows }}" as="r" hint-placeholder-count="8">
+            <div style="display: grid; grid-template-columns: minmax(160px, 240px) minmax(0, 1fr); gap: 16px; align-items: center; padding: 16px 24px; background: var(--surface); min-height: 64px;">
+              <dt style="font-size: var(--fs-meta); color: var(--text-muted);">{{ r.label }}</dt>
+              <sc-if value="{{ r.ok }}"><dd style="font-size: var(--fs-body); overflow-wrap: anywhere;">{{ r.value }}</dd></sc-if>
+              <sc-if value="{{ r.warn }}"><dd style="font-size: var(--fs-body); color: var(--danger); font-weight: 700; display: flex; align-items: center; gap: 8px; overflow-wrap: anywhere;"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M12 3.5 2.5 20h19z"></path><path d="M12 10v4.5"></path><path d="M12 17.5v.01"></path></svg>{{ r.value }}</dd></sc-if>
+            </div>
+          </sc-for>
+        </dl>
+      </section>
+      <section style="display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+        <h3 style="font-size: var(--fs-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);">{{ t.admin.actions }}</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px;">
+          <button data-action="reload" onClick="{{ adminClick }}" style="display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 0 24px; border: 1px solid var(--line); border-radius: var(--radius-btn); background: var(--surface); color: var(--text); font-size: var(--fs-body); font-weight: 700; text-align: left; cursor: pointer;" style-hover="background: var(--surface-raised)" style-active="transform: scale(0.97)"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4v5h-5"></path></svg>{{ t.admin.reload }}</button>
+          <button data-action="exit" onClick="{{ adminClick }}" style="display: flex; align-items: center; gap: 14px; min-height: 72px; padding: 0 24px; border: 1px solid var(--danger); border-radius: var(--radius-btn); background: var(--surface); color: var(--danger); font-size: var(--fs-body); font-weight: 700; text-align: left; cursor: pointer;" style-hover="background: var(--surface-raised)" style-active="transform: scale(0.97)"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" style="flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg>{{ t.admin.exit }}</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSetup }}" hint-placeholder-val="{{ false }}">
+<div data-layer="setup" style="position: absolute; inset: 0; background: var(--bg); overflow-y: auto; display: flex; padding: 48px;">
+  <div style="margin: auto; width: min(680px, 100%); display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center;">
+    <sc-if value="{{ setupIsDone }}"><div style="width: 112px; height: 112px; border-radius: 56px; background: var(--accent); color: var(--accent-contrast); display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="60" height="60" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div></sc-if>
+    <sc-if value="{{ setupStepText }}"><p style="font-size: var(--fs-meta); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);">{{ setupStepText }}</p></sc-if>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 style="font-size: 40px; font-weight: 700; line-height: 1.15;">{{ setupTitle }}</h2>
+      <p style="font-size: var(--fs-body); color: var(--text-muted); text-wrap: pretty;">{{ setupBody }}</p>
+    </div>
+    <sc-if value="{{ setupIsPin }}">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+        <div aria-hidden="true" style="display: flex; gap: 16px; height: 24px; align-items: center;">
+          <sc-for list="{{ setupSlots }}" as="p" hint-placeholder-count="4">
+            <sc-if value="{{ p.on }}"><span style="width: 20px; height: 20px; border-radius: 10px; background: var(--text); border: 2px solid var(--text);"></span></sc-if>
+            <sc-if value="{{ p.off }}"><span style="width: 20px; height: 20px; border-radius: 10px; border: 2px solid var(--line-strong);"></span></sc-if>
+          </sc-for>
+        </div>
+        <div role="alert" style="min-height: 28px; display: flex; align-items: center; gap: 8px; color: var(--danger); font-size: var(--fs-body); font-weight: 700;">
+          <sc-if value="{{ setupHasError }}"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" style="flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M12 3.5 2.5 20h19z"></path><path d="M12 10v4.5"></path><path d="M12 17.5v.01"></path></svg>{{ t.setup.mismatch }}</sc-if>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 96px); gap: 16px;">
+          <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+            <sc-if value="{{ k.isDigit }}"><button data-key="{{ k.key }}" aria-label="{{ k.label }}" onClick="{{ keyClick }}" style="height: 80px; border: 1px solid var(--line-strong); border-radius: var(--radius-btn); background: var(--surface); color: var(--text); font-size: 32px; font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums;" style-hover="background: var(--surface-raised)" style-active="transform: scale(0.95); background: var(--surface-raised)">{{ k.key }}</button></sc-if>
+            <sc-if value="{{ k.isDel }}"><button data-key="del" aria-label="{{ k.label }}" onClick="{{ keyClick }}" style="height: 80px; border: 1px solid var(--line); border-radius: var(--radius-btn); background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer;" style-hover="background: var(--surface)" style-active="transform: scale(0.95)"><svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M21 5H9l-6 7 6 7h12z"></path><path d="M17 9.5l-5 5"></path><path d="M12 9.5l5 5"></path></svg></button></sc-if>
+            <sc-if value="{{ k.isOk }}"><button data-key="ok" aria-label="{{ k.label }}" onClick="{{ keyClick }}" style="height: 80px; border: none; border-radius: var(--radius-btn); background: var(--accent); color: var(--accent-contrast); display: flex; align-items: center; justify-content: center; cursor: pointer;" style-hover="filter: brightness(1.08)" style-active="transform: scale(0.95)"><svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button></sc-if>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ setupIsDone }}">
+      <button data-autofocus="1" data-setup="start" onClick="{{ setupClick }}" style="margin-top: 8px; min-height: 72px; padding: 0 40px; border: none; border-radius: var(--radius-btn); background: var(--accent); color: var(--accent-contrast); font-size: 22px; font-weight: 700; cursor: pointer;" style-hover="filter: brightness(1.08)" style-active="transform: scale(0.97)">{{ t.setup.start }}</button>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showIdle }}" hint-placeholder-val="{{ false }}">
+<div data-layer="idle" onClick="{{ scrimStay }}" style="position: absolute; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 48px;">
+  <div role="alertdialog" aria-modal="true" aria-label="{{ t.idle.title }}" style="width: min(720px, 100%); padding: 56px 48px 48px; border-radius: var(--radius-modal); background: var(--surface-raised); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center;">
+    <div role="timer" style="font-size: 104px; font-weight: 700; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums;">{{ idleN }}</div>
+    <h2 style="font-size: 40px; font-weight: 700; line-height: 1.15;">{{ t.idle.title }}</h2>
+    <p style="font-size: var(--fs-body); color: var(--text-muted);">{{ idleBody }}</p>
+    <div style="margin-top: 16px; display: flex; flex-wrap: wrap; justify-content: center; gap: 24px;">
+      <button onClick="{{ idleLeave }}" style="min-height: 72px; padding: 0 32px; border: 1px solid var(--line-strong); border-radius: var(--radius-btn); background: transparent; color: var(--text); font-size: 22px; font-weight: 700; cursor: pointer;" style-hover="border-color: var(--text-muted)" style-active="transform: scale(0.97); background: var(--surface)">{{ idleLeaveLabel }}</button>
+      <button data-autofocus="1" onClick="{{ idleStay }}" style="min-height: 72px; padding: 0 40px; border: none; border-radius: var(--radius-btn); background: var(--accent); color: var(--accent-contrast); font-size: 22px; font-weight: 700; cursor: pointer;" style-hover="filter: brightness(1.08)" style-active="transform: scale(0.97); filter: brightness(0.92)">{{ t.idle.stay }}</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showPin }}" hint-placeholder-val="{{ false }}">
+<div data-layer="pin" style="position: absolute; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 32px;">
+  <div role="dialog" aria-modal="true" aria-label="{{ t.pin.title }}" style="width: min(520px, 100%); padding: 40px; border-radius: var(--radius-modal); background: var(--surface-raised); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 20px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;">
+      <h2 style="font-size: var(--fs-title); font-weight: 700; line-height: 1.2;">{{ t.pin.title }}</h2>
+      <p style="font-size: var(--fs-body); color: var(--text-muted);">{{ t.pin.prompt }}</p>
+    </div>
+    <div aria-hidden="true" style="display: flex; gap: 16px; height: 24px; align-items: center;">
+      <sc-for list="{{ pinSlots }}" as="p" hint-placeholder-count="4">
+        <sc-if value="{{ p.on }}"><span style="width: 20px; height: 20px; border-radius: 10px; background: var(--text); border: 2px solid var(--text);"></span></sc-if>
+        <sc-if value="{{ p.off }}"><span style="width: 20px; height: 20px; border-radius: 10px; border: 2px solid var(--line-strong);"></span></sc-if>
+      </sc-for>
+    </div>
+    <div role="alert" style="min-height: 28px; display: flex; align-items: center; gap: 8px; color: var(--danger); font-size: var(--fs-body); font-weight: 700; text-align: center;">
+      <sc-if value="{{ pinWrong }}"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" style="flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M12 3.5 2.5 20h19z"></path><path d="M12 10v4.5"></path><path d="M12 17.5v.01"></path></svg></sc-if>
+      <span style="font-variant-numeric: tabular-nums;">{{ pinErrorText }}</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 96px); gap: 16px;">
+      <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+        <sc-if value="{{ k.isDigit }}"><button data-key="{{ k.key }}" aria-label="{{ k.label }}" onClick="{{ keyClick }}" style="height: 80px; border: 1px solid var(--line-strong); border-radius: var(--radius-btn); background: var(--surface); color: var(--text); font-size: 32px; font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums;" style-hover="background: var(--bg)" style-active="transform: scale(0.95); background: var(--bg)">{{ k.key }}</button></sc-if>
+        <sc-if value="{{ k.isDel }}"><button data-key="del" aria-label="{{ k.label }}" onClick="{{ keyClick }}" style="height: 80px; border: 1px solid var(--line); border-radius: var(--radius-btn); background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer;" style-hover="background: var(--surface)" style-active="transform: scale(0.95)"><svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M21 5H9l-6 7 6 7h12z"></path><path d="M17 9.5l-5 5"></path><path d="M12 9.5l5 5"></path></svg></button></sc-if>
+        <sc-if value="{{ k.isOk }}"><button data-key="ok" aria-label="{{ k.label }}" onClick="{{ keyClick }}" style="height: 80px; border: none; border-radius: var(--radius-btn); background: var(--accent); color: var(--accent-contrast); display: flex; align-items: center; justify-content: center; cursor: pointer;" style-hover="filter: brightness(1.08)" style-active="transform: scale(0.95)"><svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></button></sc-if>
+      </sc-for>
+    </div>
+    <button data-autofocus="1" onClick="{{ closePin }}" style="width: 100%; min-height: var(--target); border: 1px solid var(--line-strong); border-radius: var(--radius-btn); background: transparent; color: var(--text); font-size: var(--fs-body); font-weight: 700; cursor: pointer;" style-hover="border-color: var(--text-muted)" style-active="transform: scale(0.98); background: var(--surface)">{{ t.pin.cancel }}</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showExit }}" hint-placeholder-val="{{ false }}">
+<div data-layer="exit" style="position: absolute; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 32px;">
+  <div role="alertdialog" aria-modal="true" aria-label="{{ t.admin.exitTitle }}" style="width: min(640px, 100%); padding: 40px; border-radius: var(--radius-modal); background: var(--surface-raised); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 16px;">
+    <h2 style="font-size: var(--fs-title); font-weight: 700; line-height: 1.2;">{{ t.admin.exitTitle }}</h2>
+    <p style="font-size: var(--fs-body); color: var(--text-muted);">{{ t.admin.exitBody }}</p>
+    <div style="margin-top: 16px; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 16px;">
+      <button data-action="exitCancel" onClick="{{ adminClick }}" style="min-height: var(--target); padding: 0 28px; border: 1px solid var(--line-strong); border-radius: var(--radius-btn); background: transparent; color: var(--text); font-size: var(--fs-body); font-weight: 700; cursor: pointer;" style-hover="border-color: var(--text-muted)" style-active="transform: scale(0.97)">{{ t.admin.cancel }}</button>
+      <button data-autofocus="1" data-action="exitConfirm" onClick="{{ adminClick }}" style="min-height: var(--target); padding: 0 28px; border: none; border-radius: var(--radius-btn); background: var(--danger); color: #12121f; font-size: var(--fs-body); font-weight: 700; cursor: pointer;" style-hover="filter: brightness(1.08)" style-active="transform: scale(0.97)">{{ t.admin.exitConfirm }}</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showDev }}" hint-placeholder-val="{{ false }}">
+<div data-dev="1" style="position: absolute; left: 16px; bottom: 16px; z-index: 50; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; font-family: var(--font-mono); font-size: 14px; line-height: 1.3; color: #e8e8ee; cursor: default;">
+  <sc-if value="{{ devOpen }}">
+    <div style="width: 360px; max-height: calc(100vh - 96px); overflow-y: auto; padding: 12px; border-radius: 12px; background: #0b0b12; border: 1px solid #3a3a4c; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;"><strong style="font-size: 14px; letter-spacing: 0.06em;">DEV STATES</strong><span style="color: #9a9aae;">` toggles · PIN {{ mockPin }}</span></div>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button data-dev-toggle="accent" onClick="{{ devToggle }}" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #3a3a4c; background: #1a1a26; color: #e8e8ee; font-family: inherit; font-size: 13px; cursor: pointer;">accent: {{ accentLabel }}</button>
+        <button data-dev-toggle="motion" onClick="{{ devToggle }}" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #3a3a4c; background: #1a1a26; color: #e8e8ee; font-family: inherit; font-size: 13px; cursor: pointer;">motion: {{ motionAttr }}</button>
+      </div>
+      <sc-for list="{{ devGroups }}" as="g" hint-placeholder-count="0">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="color: #9a9aae; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;">{{ g.name }}</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="0">
+              <sc-if value="{{ it.cur }}"><button data-preset="{{ it.id }}" onClick="{{ devPick }}" style="padding: 6px 8px; border-radius: 6px; border: 1px solid #ff5a75; background: #ff5a75; color: #12121f; font-family: inherit; font-size: 13px; cursor: pointer;">{{ it.label }}</button></sc-if>
+              <sc-if value="{{ it.notCur }}"><button data-preset="{{ it.id }}" onClick="{{ devPick }}" style="padding: 6px 8px; border-radius: 6px; border: 1px solid #3a3a4c; background: #1a1a26; color: #e8e8ee; font-family: inherit; font-size: 13px; cursor: pointer;" style-hover="border-color: #8a8aa0">{{ it.label }}</button></sc-if>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <button onClick="{{ devToggleOpen }}" aria-label="Dev state switcher" style="width: 44px; height: 44px; border-radius: 22px; border: 1px solid #3a3a4c; background: #0b0b12; color: #e8e8ee; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; opacity: 0.7;" style-hover="opacity: 1">DEV</button>
+</div>
+</sc-if>
+
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;default&quot;,&quot;alt&quot;],&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;'default'|'alt'&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;motion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;preset&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Review&quot;},&quot;embedded&quot;:{&quot;editor&quot;:null,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { ready: false };
+  rootRef = React.createRef();
+  scrollRef = React.createRef();
+
+  fmt = (s, v) => String(s == null ? '' : s).replace(/\{(\w+)\}/g, (_, k) => (v && v[k] != null ? v[k] : ''));
+
+  base() {
+    return {
+      screen: 'library', lib: { status: 'ok', decks: [] }, deckId: null, slow: false,
+      slide: 1, total: 1, stripVisible: true, stripPressed: null, slideKind: null,
+      idle: null, idleOver: null,
+      pin: null, admin: { status: null, usb: null, confirmExit: false },
+      setup: { step: 'enter', digits: '', first: '', error: null, ppt: true },
+      pressedId: null, hoverId: null
+    };
+  }
+
+  componentDidMount() {
+    const go = () => (window.KIOSK_STRINGS && window.KIOSK_CONFIG && window.KIOSK_MOCK && window.KioskBridge) ? this.boot() : (this.bootT = setTimeout(go, 20));
+    go();
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.bootT); clearInterval(this.tickI); clearTimeout(this.cursorT); clearTimeout(this.lpT);
+    if (this.offBridge) this.offBridge();
+    (this.unlisten || []).forEach(f => f());
+  }
+
+  boot() {
+    const C = window.KIOSK_CONFIG, M = window.KIOSK_MOCK;
+    this.C = C; this.M = M; this.T = window.KIOSK_STRINGS; this.live = !this.props.embedded;
+    const s = {
+      // HOST: in WebView2 start empty and wait for the host's first library message.
+      ...this.base(), ready: true, lib: this.isNative() ? { status: 'ok', decks: [] } : M.initial,
+      waiting: this.isNative(), video: false, mouse: false, devOpen: false, preset: null,
+      accentName: this.props.accent === 'alt' ? 'alt' : undefined,
+      motion: this.props.motion != null ? !!this.props.motion : C.motion !== false
+    };
+    let pid = this.props.preset;
+    if (!pid && this.live) pid = new URLSearchParams(location.search).get('state');
+    if (pid) Object.assign(s, this.presetState(pid));
+    else if (C.firstRun) s.screen = 'setup';
+    this.setState(s, () => this.syncTimers());
+    if (!this.live) return;
+    this.offBridge = window.KioskBridge.on(m => this.onHost(m));
+    // HOST: ask for the library, config-dependent state and anything pending.
+    if (this.isNative()) window.KioskBridge.send({ cmd: 'ready' });
+    const on = (t, ev, fn, opt) => { t.addEventListener(ev, fn, opt); (this.unlisten = this.unlisten || []).push(() => t.removeEventListener(ev, fn, opt)); };
+    const block = e => e.preventDefault();
+    on(window, 'keydown', this.onKey, true);
+    ['pointerdown', 'pointermove', 'wheel'].forEach(ev => on(window, ev, this.markInput, { capture: true, passive: true }));
+    on(window, 'contextmenu', block, true);
+    on(window, 'dragstart', block, true);
+    on(window, 'selectstart', block, true);
+    on(window, 'gesturestart', block, true);
+    on(window, 'wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { capture: true, passive: false });
+    on(window, 'click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (a) e.preventDefault(); }, true);
+    this.tickI = setInterval(this.tick, 250);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (!this.state.ready) return;
+    const p = this.props;
+    if (prevProps.accent !== p.accent) this.setState({ accentName: p.accent === 'alt' ? 'alt' : undefined });
+    if (prevProps.motion !== p.motion && p.motion != null) this.setState({ motion: !!p.motion });
+    if (prevProps.preset !== p.preset && p.preset) this.applyPreset(p.preset);
+    const root = this.rootRef.current; if (!root) return;
+    const hex = this.C.brand.accent;
+    if (hex && !this.state.accentName) {
+      root.style.setProperty('--accent', hex);
+      root.style.setProperty('--accent-contrast', this.lum(hex) > 0.18 ? '#12121f' : '#ffffff');
+    }
+    const top = this.topLayer();
+    root.querySelectorAll('[data-layer]').forEach(el => { el.inert = el.dataset.layer !== top; });
+    // HOST: the dc runtime passes no prevState, so remember the last slow flag here.
+    const slowNow = !!this.state.slow, slowEdge = slowNow && !this.lastSlow;
+    this.lastSlow = slowNow;
+    if (this.live && (top !== this.lastTop || slowEdge)) {
+      this.lastTop = top;
+      requestAnimationFrame(() => this.autoFocus(top));
+    }
+  }
+
+  lum(hex) {
+    const n = parseInt(hex.replace('#', ''), 16), c = [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+
+  topLayer() {
+    const s = this.state;
+    if (s.screen === 'admin' && s.admin.confirmExit) return 'exit';
+    if (s.pin) return 'pin';
+    if (s.idle != null) return 'idle';
+    return s.screen;
+  }
+
+  autoFocus(top) {
+    const root = this.rootRef.current; if (!root) return;
+    const layer = root.querySelector('[data-layer="' + top + '"]'); if (!layer) return;
+    let el = layer.querySelector('[data-autofocus]');
+    if (top === 'library' && this.lastDeck) el = layer.querySelector('[data-deck="' + this.lastDeck + '"]');
+    if (el) el.focus({ preventScroll: top !== 'library' });
+    else if (document.activeElement && root.contains(document.activeElement)) document.activeElement.blur();
+  }
+
+  presetState(id) {
+    const p = this.M.PRESETS.find(x => x.id === id); if (!p) return {};
+    return { ...this.base(), ...JSON.parse(JSON.stringify(p.s)), preset: id };
+  }
+
+  applyPreset(id) { this.setState(this.presetState(id), () => this.syncTimers()); }
+
+  syncTimers() {
+    const now = Date.now(), Ti = this.C.timers, s = this.state;
+    this.lastInput = now; this.stripAt = now; this.libReset = false;
+    this.openAt = s.slow ? now - Ti.openingSlow * 1000 : now;
+    this.endAt = s.screen === 'end' && Ti.endAutoReturn ? now + Ti.endAutoReturn * 1000 : null;
+    if (s.idle != null) this.lastInput = now - (Ti.playerIdle + Ti.prompt - s.idle) * 1000;
+  }
+
+  // ---------- timers ----------
+  tick = () => {
+    const s = this.state, Ti = this.C.timers, now = Date.now(), patch = {};
+    const idleMs = now - this.lastInput;
+    if (s.screen === 'library' && !s.pin && !this.libReset && idleMs >= Ti.libraryIdle * 1000) { this.libReset = true; this.resetLibrary(); }
+    if (s.screen === 'player' && !this.videoPlaying() && idleMs >= Ti.playerIdle * 1000) {
+      const left = Math.ceil(((Ti.playerIdle + Ti.prompt) * 1000 - idleMs) / 1000);
+      if (left <= 0) return this.goHome();
+      if (s.idle !== left) { if (s.idle == null) this.send({ cmd: 'prompt', visible: true }); patch.idle = left; patch.idleOver = 'player'; }
+    }
+    if (s.screen === 'end' && this.endAt && now >= this.endAt) return this.goHome();
+    if (s.screen === 'opening' && !s.slow && now - this.openAt >= Ti.openingSlow * 1000) patch.slow = true;
+    if (s.screen === 'player' && s.stripVisible && s.idle == null && now - this.stripAt > Ti.stripHide * 1000) patch.stripVisible = false;
+    if (Object.keys(patch).length) this.setState(patch);
+  };
+
+  videoPlaying() { return this.isNative() ? !!this.state.video : this.slideKindNow() === 'video'; }
+
+  // ---------- host ----------
+  send(msg) { if (this.live) window.KioskBridge.send(msg); }
+
+  onHost(m) {
+    const now = Date.now();
+    switch (m.type) {
+      case 'library': this.setState({ lib: { status: m.status, decks: m.decks || [] }, waiting: false }); break;
+      // HOST: messages the real host adds on top of the design's mock protocol.
+      case 'slide': this.lastInput = now; this.setState({ slide: m.n || 1, total: m.total || this.state.total, video: !!m.video }); break;
+      case 'activity': if (this.state.idle == null) { this.lastInput = now; this.libReset = false; } break;
+      case 'home': this.goLibrary(); break;
+      case 'openFailed': this.goLibrary(); break;
+      case 'pin': this.openPin(); break;
+      case 'opening': this.openAt = now; this.setState({ screen: 'opening', deckId: m.id, slow: false, idle: null, idleOver: null }); break;
+      case 'showStarted':
+        if (this.state.screen !== 'opening' || this.state.deckId !== m.id) return;
+        this.lastInput = this.stripAt = now;
+        this.setState({ screen: 'player', slide: 1, total: m.slideCount || 1, stripVisible: true, slideKind: null, stripPressed: null, video: !!m.video });
+        break;
+      case 'showEnded': this.goEnd(); break;
+      case 'pinResult':
+        if (m.ok) { this.setState(s => ({ pin: null, screen: 'admin', admin: { ...s.admin, status: s.admin.status || this.M.STATUS_OK, confirmExit: false } })); break; }
+        this.setState({ pin: { digits: '', error: 'wrong' } });
+        break;
+      case 'adminStatus': this.setState(s => ({ admin: { ...s.admin, status: m.status } })); break;
+      case 'setupResult': this.setState(s => ({ setup: { ...s.setup, step: 'done', digits: '', first: '' } })); break;
+    }
+  }
+
+  // ---------- navigation ----------
+  open(id) {
+    if (!this.live) return;
+    const now = Date.now();
+    if (now < (this.inputLockUntil || 0)) return;
+    this.inputLockUntil = now + this.C.timers.inputLock * 1000;
+    this.lastDeck = id;
+    this.send({ cmd: 'open', id });
+  }
+  goHome = () => {
+    this.send({ cmd: 'home' });
+    this.goLibrary();
+  };
+  // HOST: local half of goHome, used when the host already knows (Esc in PowerPoint, open failed).
+  goLibrary = () => {
+    if (this.state.idle != null) this.send({ cmd: 'prompt', visible: false });
+    this.lastInput = Date.now(); this.endAt = null; this.libReset = false;
+    this.setState({ screen: 'library', idle: null, idleOver: null, slow: false, stripPressed: null, slideKind: null });
+  };
+  goEnd() {
+    const sec = this.C.timers.endAutoReturn;
+    this.endAt = sec ? Date.now() + sec * 1000 : null;
+    this.setState({ screen: 'end', idle: null, idleOver: null });
+  }
+  resetLibrary() {
+    this.lastDeck = null;
+    if (this.scrollRef.current) this.scrollRef.current.scrollTop = 0;
+    const a = document.activeElement; if (a && this.rootRef.current && this.rootRef.current.contains(a)) a.blur();
+    this.setState({ pressedId: null, hoverId: null });
+  }
+  next() { if (this.isNative()) return this.send({ cmd: 'next' }); const s = this.state; if (s.slide < s.total) this.setState({ slide: s.slide + 1, slideKind: null }); else this.goEnd(); }
+  prev() { if (this.isNative()) return this.send({ cmd: 'prev' }); const s = this.state; if (s.slide > 1) this.setState({ slide: s.slide - 1, slideKind: null }); }
+  stay() {
+    // HOST: tell the host to drop its window back behind the slideshow.
+    if (this.state.idle != null) this.send({ cmd: 'prompt', visible: false });
+    this.lastInput = Date.now(); this.stripAt = Date.now(); this.setState({ idle: null, idleOver: null });
+  }
+  isNative() { return !!(window.KioskBridge && window.KioskBridge.isNative) && !this.props.embedded; }
+  openPin() {
+    const s = this.state;
+    if (s.screen === 'setup' || s.pin) return;
+    clearTimeout(this.lpT);
+    this.setState({ pin: { digits: '', error: null }, idle: null, idleOver: null, pressedId: null });
+  }
+  closePin = () => { this.lastInput = Date.now(); this.setState({ pin: null }); };
+
+  pinKey(k) {
+    const p = this.state.pin; if (!p) return;
+    if (k === 'del') return this.setState({ pin: { ...p, digits: p.digits.slice(0, -1) } });
+    if (k === 'ok') { if (p.digits.length >= 4) { this.send({ cmd: 'pinSubmit', digits: p.digits }); this.setState({ pin: { ...p, digits: '' } }); } return; }
+    if (p.digits.length < 8) this.setState({ pin: { ...p, digits: p.digits + k, error: null } });
+  }
+  setupKey(k) {
+    const st = this.state.setup;
+    if (st.step !== 'enter' && st.step !== 'confirm') return;
+    const set = o => this.setState({ setup: { ...st, ...o } });
+    if (k === 'del') return set({ digits: st.digits.slice(0, -1) });
+    if (k === 'ok') {
+      if (st.digits.length < 4) return;
+      if (st.step === 'enter') return set({ step: 'confirm', first: st.digits, digits: '', error: null });
+      if (st.digits === st.first) { this.send({ cmd: 'setPin', digits: st.digits }); if (!this.live) set({ step: 'done', digits: '' }); return; }
+      return set({ step: 'enter', digits: '', first: '', error: 'mismatch' });
+    }
+    if (st.digits.length < 8) set({ digits: st.digits + k, error: st.step === 'enter' ? null : st.error });
+  }
+
+  // ---------- input ----------
+  markInput = e => {
+    if (e.pointerType === 'mouse' && (e.type === 'pointermove' || e.type === 'pointerdown')) this.mouseSeen();
+    else if (e.type === 'pointerdown' && this.state.mouse) { clearTimeout(this.cursorT); this.setState({ mouse: false }); }
+    if (e.target && e.target.closest && e.target.closest('[data-dev]')) return;
+    if (e.type === 'pointermove' && this.state.idle != null) return;
+    this.lastInput = Date.now(); this.libReset = false;
+    if (this.state.screen === 'player' && this.state.idle == null) { this.stripAt = this.lastInput; if (!this.state.stripVisible) this.setState({ stripVisible: true }); }
+  };
+  mouseSeen() {
+    if (!this.state.mouse) this.setState({ mouse: true });
+    clearTimeout(this.cursorT);
+    this.cursorT = setTimeout(() => this.setState({ mouse: false }), this.C.timers.cursorHide * 1000);
+  }
+
+  onKey = e => {
+    const s = this.state, k = e.key;
+    if (k === '`' && this.C.dev) { e.preventDefault(); return this.setState({ devOpen: !s.devOpen }); }
+    if (e.target && e.target.closest && e.target.closest('[data-dev]')) return;
+    if (e.ctrlKey && ['+', '-', '=', '0'].includes(k)) { e.preventDefault(); return; }
+    this.lastInput = Date.now(); this.libReset = false;
+    if (s.screen === 'player') { this.stripAt = this.lastInput; if (!s.stripVisible) this.setState({ stripVisible: true }); }
+    if (e.ctrlKey && e.shiftKey && k.toLowerCase() === 'q') { e.preventDefault(); return this.openPin(); }
+    if (s.screen === 'admin' && s.admin.confirmExit) { if (k === 'Escape') return this.admin('exitCancel'); return this.arrowNav(e); }
+    if (s.idle != null) { if (k === 'Escape') { e.preventDefault(); return this.stay(); } return this.arrowNav(e); }
+    if (s.pin) {
+      if (/^[0-9]$/.test(k)) { e.preventDefault(); return this.pinKey(k); }
+      if (k === 'Backspace') { e.preventDefault(); return this.pinKey('del'); }
+      if (k === 'Enter') { e.preventDefault(); return this.pinKey('ok'); }
+      if (k === 'Escape') { e.preventDefault(); return this.closePin(); }
+      return this.arrowNav(e);
+    }
+    if (s.screen === 'setup' && (s.setup.step === 'enter' || s.setup.step === 'confirm')) {
+      if (/^[0-9]$/.test(k)) { e.preventDefault(); return this.setupKey(k); }
+      if (k === 'Backspace') { e.preventDefault(); return this.setupKey('del'); }
+      if (k === 'Enter') { e.preventDefault(); return this.setupKey('ok'); }
+    }
+    if (s.screen === 'player') {
+      if (k === 'ArrowRight' || k === ' ' || k === 'PageDown') { e.preventDefault(); return this.next(); }
+      if (k === 'ArrowLeft' || k === 'PageUp') { e.preventDefault(); return this.prev(); }
+      if (k === 'Escape') { e.preventDefault(); return this.goHome(); }
+      return;
+    }
+    if (k === 'Escape') {
+      if (s.screen === 'opening' || s.screen === 'end') { e.preventDefault(); return this.goHome(); }
+      if (s.screen === 'admin') { e.preventDefault(); return this.admin('close'); }
+    }
+    this.arrowNav(e);
+  };
+
+  arrowNav(e) {
+    const k = e.key; if (!/^Arrow(Up|Down|Left|Right)$/.test(k)) return;
+    const root = this.rootRef.current; if (!root) return;
+    e.preventDefault();
+    const els = [...root.querySelectorAll('button:not([disabled])')].filter(el => !el.closest('[inert]') && !el.closest('[data-dev]') && el.getClientRects().length);
+    const cur = document.activeElement;
+    if (!els.includes(cur)) { const first = els.find(el => el.dataset.autofocus) || els[0]; if (first) first.focus(); return; }
+    const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    let best = null, bd = Infinity;
+    for (const el of els) {
+      if (el === cur) continue;
+      const q = el.getBoundingClientRect(), dx = q.left + q.width / 2 - cx, dy = q.top + q.height / 2 - cy;
+      let main, cross;
+      if (k === 'ArrowRight') { main = dx; cross = dy; } else if (k === 'ArrowLeft') { main = -dx; cross = dy; }
+      else if (k === 'ArrowDown') { main = dy; cross = dx; } else { main = -dy; cross = dx; }
+      if (main <= 2) continue;
+      const d = main + Math.abs(cross) * 2;
+      if (d < bd) { bd = d; best = el; }
+    }
+    if (best) best.focus();
+  }
+
+  admin(action) {
+    const s = this.state;
+    if (action === 'close') { this.lastInput = Date.now(); return this.setState({ screen: 'library', admin: { ...s.admin, confirmExit: false } }); }
+    if (action === 'exit') return this.setState({ admin: { ...s.admin, confirmExit: true } });
+    if (action === 'exitCancel') return this.setState({ admin: { ...s.admin, confirmExit: false } });
+    if (action === 'exitConfirm') { this.send({ cmd: 'admin', action: 'exit' }); if (!window.KioskBridge.isNative) this.setState({ screen: 'library', admin: { ...s.admin, confirmExit: false } }); return; }
+    this.send({ cmd: 'admin', action });
+  }
+
+  slideKindNow() {
+    const s = this.state; if (s.slideKind) return s.slideKind;
+    const deck = this.curDeck(); if (s.slide === 1) return 'thumb';
+    if (deck && deck.hasVideo && s.slide === 2) return 'video';
+    return s.slide % 2 ? 'dark' : 'light';
+  }
+  curDeck() {
+    const s = this.state, decks = (s.lib && s.lib.decks) || [];
+    return decks.find(d => d.id === s.deckId) || this.M.DECKS.find(d => d.id === s.deckId) || decks[0] || this.M.DECKS[0];
+  }
+
+  renderVals() {
+    const s = this.state;
+    const out = { rootRef: this.rootRef, scrollRef: this.scrollRef, ready: !!s.ready, standaloneAttr: this.props.embedded ? undefined : '1', cursor: 'default' };
+    if (!s.ready) return out;
+    const T = this.T, C = this.C, M = this.M, f = this.fmt;
+    const decks = (s.lib && s.lib.decks) || [], n = decks.length, deck = this.curDeck();
+    const libOk = s.lib.status === 'ok' && n > 0;
+    const cards = decks.map(d => {
+      const pressed = s.pressedId === d.id, hover = s.hoverId === d.id;
+      return {
+        ...d, hasThumb: !!d.thumbnail, noThumb: !d.thumbnail, hasDesc: !!d.description,
+        countText: d.slideCount === 1 ? T.library.slidesOne : f(T.library.slides, { n: d.slideCount }),
+        aria: f(T.library.open, { title: d.title }),
+        bg: pressed || hover ? 'var(--surface-raised)' : 'var(--surface)',
+        tf: pressed ? 'scale(0.97)' : 'none'
+      };
+    });
+    const kind = this.slideKindNow();
+    const pin = s.pin, st = s.setup, adm = s.admin.status || M.STATUS_OK, F = T.admin.fields;
+    const slots = (digits) => Array.from({ length: Math.max(4, digits.length) }, (_, i) => ({ on: i < digits.length, off: i >= digits.length }));
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'].map(k => ({ key: k, isDigit: /\d/.test(k), isDel: k === 'del', isOk: k === 'ok', label: k === 'del' ? T.pin.del : k === 'ok' ? T.pin.submit : k }));
+    const warnRow = (label, value, warn) => ({ label, value, warn: !!warn, ok: !warn });
+    const pinStep = st.step === 'enter' || st.step === 'confirm';
+    const stepN = { enter: 1, confirm: 2 }[st.step];
+    const groups = [];
+    M.PRESETS.forEach(p => { let g = groups.find(x => x.name === p.group); if (!g) groups.push(g = { name: p.group, items: [] }); g.items.push({ id: p.id, label: p.label, cur: s.preset === p.id, notCur: s.preset !== p.id }); });
+    const pressedOp = a => (s.stripPressed === a ? 1 : 0), pressedTf = a => (s.stripPressed === a ? 'scale(0.94)' : 'none');
+
+    return {
+      ...out, t: T,
+      cursor: !this.live || s.mouse ? 'default' : 'none',
+      accentName: s.accentName, motionAttr: s.motion ? 'on' : 'off', mouseAttr: s.mouse ? '1' : '0',
+      accentLabel: s.accentName === 'alt' ? 'alt' : 'default',
+      brandTitle: C.brand.title, brandSubtitle: C.brand.subtitle, hasLogo: !!C.brand.logo, noLogo: !C.brand.logo, logoSrc: C.brand.logo,
+
+      showLibrary: s.screen === 'library',
+      libOk, libMessage: !libOk && !s.waiting,
+      libMsgTitle: s.lib.status === 'unavailable' ? T.library.unavailableTitle : T.library.emptyTitle,
+      libMsgBody: s.lib.status === 'unavailable' ? T.library.unavailableBody : T.library.emptyBody,
+      gridCols: n === 1 ? 'minmax(0, 720px)' : n === 2 ? 'repeat(2, minmax(0, 560px))' : 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))',
+      cards,
+      cardDown: e => { const id = e.currentTarget.dataset.deck; this.press = { id, x: e.clientX, y: e.clientY, cancel: false }; this.setState({ pressedId: id }); },
+      cardMove: e => { const p = this.press; if (p && !p.cancel && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) { p.cancel = true; this.setState({ pressedId: null }); } },
+      cardUp: () => { if (this.state.pressedId) this.setState({ pressedId: null }); },
+      cardCancel: () => { if (this.press) this.press.cancel = true; this.setState({ pressedId: null }); },
+      cardEnter: e => { if (e.pointerType === 'mouse') this.setState({ hoverId: e.currentTarget.dataset.deck }); },
+      cardLeave: () => { if (this.state.hoverId || this.state.pressedId) this.setState({ hoverId: null, pressedId: null }); },
+      cardClick: e => { const id = e.currentTarget.dataset.deck, p = this.press; this.press = null; if (e.detail !== 0 && (!p || p.cancel || p.id !== id)) return; this.open(id); },
+      logoDown: () => { if (!this.live) return; clearTimeout(this.lpT); this.lpT = setTimeout(() => this.openPin(), C.timers.adminHold * 1000); },
+      logoUp: () => clearTimeout(this.lpT),
+
+      isOpening: s.screen === 'opening', openNormal: !s.slow, openSlow: !!s.slow, loader: this.loader(s.motion),
+      curTitle: deck.title, curThumb: deck.thumbnail, curHasThumb: !!deck.thumbnail, curNoThumb: !deck.thumbnail,
+      backFromOpening: this.goHome,
+
+      isPlayer: s.screen === 'player', devTag: this.live && C.dev, mockShow: !this.isNative(),
+      slideSrc: kind === 'thumb' ? (deck.thumbnail || 'slides/dark.png') : 'slides/' + kind + '.png',
+      counterText: f(T.player.counter, { n: s.slide, total: s.total > 1 ? s.total : deck.slideCount }),
+      stripOpacity: s.stripVisible ? 1 : 0, stripTf: s.stripVisible ? 'scale(1)' : 'scale(0.96)', stripPE: s.stripVisible ? 'auto' : 'none',
+      homeP: pressedOp('home'), prevP: pressedOp('prev'), nextP: pressedOp('next'),
+      homeTf: pressedTf('home'), prevTf: pressedTf('prev'), nextTf: pressedTf('next'),
+      prevOp: s.slide > 1 ? 1 : 0.4,
+      stripDown: e => { e.stopPropagation(); this.setState({ stripPressed: e.currentTarget.dataset.act }); },
+      stripUp: () => { if (this.state.stripPressed) this.setState({ stripPressed: null }); },
+      stripClick: e => { const a = e.currentTarget.dataset.act; if (!this.live) return; if (a === 'home') this.goHome(); else if (a === 'prev') this.prev(); else this.next(); },
+      slideDown: e => { this.swipe = { x: e.clientX, y: e.clientY }; },
+      slideUp: e => {
+        const w = this.swipe; this.swipe = null; if (!w || !this.live || (e.target.closest && e.target.closest('[data-strip]'))) return;
+        const dx = e.clientX - w.x, dy = e.clientY - w.y;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) dx < 0 ? this.next() : this.prev();
+        else if (Math.hypot(dx, dy) < 10) this.next();
+      },
+
+      isEnd: s.screen === 'end',
+      replay: () => this.send({ cmd: 'replay', id: deck.id }), goHome: this.goHome,
+
+      showIdle: s.idle != null && !s.pin, idleN: s.idle,
+      idleBody: f(T.idle.body, { n: s.idle }),
+      idleLeaveLabel: T.idle.leave,
+      idleStay: () => this.stay(),
+      idleLeave: () => this.goHome(),
+      scrimStay: e => { if (e.target === e.currentTarget) this.stay(); },
+
+      showPin: !!pin, pinSlots: slots(pin ? pin.digits : ''), keys,
+      pinWrong: !!(pin && pin.error === 'wrong'),
+      pinErrorText: pin && pin.error === 'wrong' ? T.pin.wrong : '',
+      keyClick: e => { const k = e.currentTarget.dataset.key; this.state.pin ? this.pinKey(k) : this.setupKey(k); },
+      closePin: this.closePin, mockPin: M.mockPin,
+
+      isAdmin: s.screen === 'admin', adm,
+      healthOk: !adm.warnings.length, healthBad: adm.warnings.length > 0,
+      healthText: !adm.warnings.length ? T.admin.healthy : adm.warnings.length === 1 ? T.admin.problemsOne : f(T.admin.problems, { n: adm.warnings.length }),
+      hasWarnings: adm.warnings.length > 0, warnings: adm.warnings,
+      statusRows: [
+        warnRow(F.version, adm.version),
+        warnRow(F.folder, adm.folderOk ? adm.folder : adm.folder + ' \u00b7 ' + T.admin.missing, !adm.folderOk),
+        warnRow(F.decks, String(adm.decks), !adm.decks),
+        warnRow(F.ppt, adm.ppt || T.admin.notFound, !adm.ppt),
+        warnRow(F.network, adm.network ? T.admin.online : T.admin.offline, !adm.network),
+        warnRow(F.refresh, adm.lastRefresh),
+        warnRow(F.account, adm.account),
+        warnRow(F.autostart, adm.autostart ? T.admin.yes : T.admin.no, !adm.autostart)
+      ],
+      adminClick: e => this.admin(e.currentTarget.dataset.action),
+      showExit: s.screen === 'admin' && s.admin.confirmExit,
+
+      isSetup: s.screen === 'setup', setupIsPin: pinStep, setupIsDone: st.step === 'done',
+      setupStepText: stepN ? f(T.setup.step, { n: stepN }) : '',
+      setupTitle: { enter: T.setup.enterTitle, confirm: T.setup.confirmTitle, done: T.setup.doneTitle }[st.step],
+      setupBody: { enter: T.setup.enterBody, confirm: T.setup.confirmBody, done: T.setup.doneBody }[st.step],
+      setupSlots: slots(st.digits), setupHasError: st.error === 'mismatch',
+      setupClick: e => {
+        const a = e.currentTarget.dataset.setup;
+        if (a === 'start') { this.lastInput = Date.now(); this.setState({ screen: 'library' }); }
+      },
+
+      showDev: this.live && !!C.dev, devOpen: !!s.devOpen, devGroups: groups,
+      devToggleOpen: () => this.setState({ devOpen: !s.devOpen }),
+      devPick: e => this.applyPreset(e.currentTarget.dataset.preset),
+      devToggle: e => {
+        const k = e.currentTarget.dataset.devToggle;
+        if (k === 'accent') this.setState({ accentName: s.accentName === 'alt' ? undefined : 'alt' });
+        if (k === 'motion') this.setState({ motion: !s.motion });
+      }
+    };
+  }
+
+  loader(motion) {
+    const h = React.createElement;
+    return h('span', { 'aria-hidden': true, style: { display: 'inline-flex', gap: 8 } }, [0, 1, 2].map(i => h('span', { key: i, style: { width: 10, height: 10, borderRadius: 5, background: 'currentColor', opacity: motion ? undefined : 0.6, animation: motion ? 'kioskDot 1.2s ease-in-out ' + (i * 0.2) + 's infinite' : 'none' } })));
+  }
+}
+</script>
+</body>
+</html>

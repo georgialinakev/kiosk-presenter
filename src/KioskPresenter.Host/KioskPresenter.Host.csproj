@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>KioskPresenter.Host</RootNamespace>
+    <AssemblyName>KioskPresenter</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <!-- Release publish: one self-contained exe, no .NET install needed on the kiosk. -->
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Floating until the first CI build; pin to the version it restores. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KioskPresenter.Core\KioskPresenter.Core.csproj" />
+    <ProjectReference Include="..\KioskPresenter.PowerPoint\KioskPresenter.PowerPoint.csproj" />
+  </ItemGroup>
+
+  <!-- Debug runs: copy ui/ next to the exe so F5 in VS Code works. Release packaging copies it separately. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <None Include="..\..\ui\**\*" LinkBase="ui" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

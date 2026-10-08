@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="tokens.css">
+<script src="config.js"></script>
+<script src="strings.js"></script>
+<script src="mock-data.js"></script>
+<style>
+body { margin: 0; background: #0e0e18; }
+a { color: #ff8fa1; text-decoration: none; }
+a:hover { color: #ffb3c0; text-decoration: underline; }
+</style>
+</helmet>
+<div style="padding: 160px; display: flex; flex-direction: column; gap: 200px; width: max-content; font-family: 'Atkinson Hyperlegible Next', 'Segoe UI', sans-serif; color: #f2f2f6; background: #0e0e18;">
+
+  <header style="display: flex; flex-direction: column; gap: 32px; max-width: 2400px;">
+    <p style="margin: 0; font-family: ui-monospace, Consolas, monospace; font-size: 32px; color: #9a9cb2;">Museum Kiosk · Design handoff · Oct 8, 2026</p>
+    <h1 style="margin: 0; font-size: 140px; line-height: 1; letter-spacing: -0.02em;">Visitor kiosk: every screen and state</h1>
+    <p style="margin: 0; font-size: 40px; line-height: 1.4; color: #b4b6c6; max-width: 2200px; text-wrap: pretty;">Each frame below is the live frontend (Kiosk App.dc.html) mounted at 1920×1080 and locked to one state from the mock. The same states are reachable in the running app through the DEV switcher (press ` or tap DEV, bottom left).</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 16px 48px; font-size: 32px;">
+      <a href="#screens">Screens</a>
+      <a href="#responsive">1366×768 · theming</a>
+      <a href="#strip">Control strip spec</a>
+      <a href="#contrast">Contrast check</a>
+      <a href="#keyboard">Keyboard walkthrough</a>
+      <a href="#files">Files</a>
+    </div>
+  </header>
+
+  <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+  <div id="screens" style="display: flex; flex-direction: column; gap: 200px;">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="0">
+      <section style="display: flex; flex-direction: column; gap: 56px;">
+        <div style="display: flex; align-items: baseline; gap: 32px; border-bottom: 2px solid #2a2a3c; padding-bottom: 24px;">
+          <span style="font-family: ui-monospace, Consolas, monospace; font-size: 40px; padding: 6px 18px; border-radius: 10px; background: #f2f2f6; color: #0e0e18; font-weight: 700;">{{ g.num }}</span>
+          <h2 style="margin: 0; font-size: 80px; line-height: 1.1;">{{ g.name }}</h2>
+          <span style="font-size: 36px; color: #9a9cb2;">{{ g.note }}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1920px); gap: 120px 96px;">
+          <sc-for list="{{ g.items }}" as="p" hint-placeholder-count="0">
+            <div id="{{ p.anchor }}" style="display: flex; flex-direction: column; gap: 24px;">
+              <div style="display: flex; align-items: baseline; gap: 20px;">
+                <span style="font-family: ui-monospace, Consolas, monospace; font-size: 32px; padding: 4px 14px; border-radius: 8px; background: #2a2a3c; color: #f2f2f6;">{{ p.num }}</span>
+                <span style="font-size: 44px; font-weight: 700;">{{ p.label }}</span>
+                <span style="font-family: ui-monospace, Consolas, monospace; font-size: 28px; color: #9a9cb2;">?state={{ p.id }}</span>
+              </div>
+              <div style="position: relative; width: 1920px; height: 1080px; overflow: hidden; border-radius: 4px; box-shadow: 0 0 0 2px #2a2a3c;">
+                <dc-import name="Kiosk App" preset="{{ p.id }}" embedded="{{ true }}" hint-size="1920px,1080px" style="position: relative; display: block; width: 1920px; height: 1080px;"></dc-import>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <section id="responsive" style="display: flex; flex-direction: column; gap: 56px;">
+    <div style="display: flex; align-items: baseline; gap: 32px; border-bottom: 2px solid #2a2a3c; padding-bottom: 24px;">
+      <span style="font-family: ui-monospace, Consolas, monospace; font-size: 40px; padding: 6px 18px; border-radius: 10px; background: #f2f2f6; color: #0e0e18; font-weight: 700;">R</span>
+      <h2 style="margin: 0; font-size: 80px; line-height: 1.1;">Library at 1366×768, and theming</h2>
+      <span style="font-size: 36px; color: #9a9cb2;">4K at 200% renders as 1920×1080 CSS px; thumbnails ship at 960×540 so they stay sharp at 2×.</span>
+    </div>
+    <div style="display: flex; gap: 96px; align-items: flex-start;">
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div style="display: flex; align-items: baseline; gap: 20px;"><span style="font-family: ui-monospace, Consolas, monospace; font-size: 32px; padding: 4px 14px; border-radius: 8px; background: #2a2a3c;">R.1</span><span style="font-size: 44px; font-weight: 700;">1366×768, 24 decks</span></div>
+        <div style="position: relative; width: 1366px; height: 768px; overflow: hidden; box-shadow: 0 0 0 2px #2a2a3c;"><dc-import name="Kiosk App" preset="lib-24" embedded="{{ true }}" hint-size="1366px,768px" style="position: relative; display: block; width: 1366px; height: 768px;"></dc-import></div>
+        <div style="display: flex; align-items: baseline; gap: 20px; margin-top: 72px;"><span style="font-family: ui-monospace, Consolas, monospace; font-size: 32px; padding: 4px 14px; border-radius: 8px; background: #2a2a3c;">R.2</span><span style="font-size: 44px; font-weight: 700;">1366×768, 70-character title</span></div>
+        <div style="position: relative; width: 1366px; height: 768px; overflow: hidden; box-shadow: 0 0 0 2px #2a2a3c;"><dc-import name="Kiosk App" preset="lib-long" embedded="{{ true }}" hint-size="1366px,768px" style="position: relative; display: block; width: 1366px; height: 768px;"></dc-import></div>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, 1920px); gap: 120px 96px; margin-top: 64px;">
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div style="display: flex; align-items: baseline; gap: 20px;"><span style="font-family: ui-monospace, Consolas, monospace; font-size: 32px; padding: 4px 14px; border-radius: 8px; background: #2a2a3c;">R.3</span><span style="font-size: 44px; font-weight: 700;">Alternate accent</span><span style="font-family: ui-monospace, Consolas, monospace; font-size: 28px; color: #9a9cb2;">data-accent="alt" · --accent #4fd1b5</span></div>
+        <div style="position: relative; width: 1920px; height: 1080px; overflow: hidden; box-shadow: 0 0 0 2px #2a2a3c;"><dc-import name="Kiosk App" preset="lib-video" accent="alt" embedded="{{ true }}" hint-size="1920px,1080px" style="position: relative; display: block; width: 1920px; height: 1080px;"></dc-import></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div style="display: flex; align-items: baseline; gap: 20px;"><span style="font-family: ui-monospace, Consolas, monospace; font-size: 32px; padding: 4px 14px; border-radius: 8px; background: #2a2a3c;">R.4</span><span style="font-size: 44px; font-weight: 700;">Alternate accent on a modal</span></div>
+        <div style="position: relative; width: 1920px; height: 1080px; overflow: hidden; box-shadow: 0 0 0 2px #2a2a3c;"><dc-import name="Kiosk App" preset="idle-player" accent="alt" embedded="{{ true }}" hint-size="1920px,1080px" style="position: relative; display: block; width: 1920px; height: 1080px;"></dc-import></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="strip" style="display: flex; flex-direction: column; gap: 56px;">
+    <div style="display: flex; align-items: baseline; gap: 32px; border-bottom: 2px solid #2a2a3c; padding-bottom: 24px;">
+      <span style="font-family: ui-monospace, Consolas, monospace; font-size: 40px; padding: 6px 18px; border-radius: 10px; background: #f2f2f6; color: #0e0e18; font-weight: 700;">3</span>
+      <h2 style="margin: 0; font-size: 80px; line-height: 1.1;">Control strip spec for the native WPF rebuild</h2>
+      <span style="font-size: 36px; color: #9a9cb2;">All states are drawn as frames in group 3 above.</span>
+    </div>
+    <div style="display: flex; gap: 120px; align-items: flex-start;">
+      <div style="display: flex; flex-direction: column; gap: 48px; align-items: center; padding: 120px 140px; background: repeating-linear-gradient(90deg, #f5f2ec 0 50%, #101114 50% 100%); border-radius: 8px;">
+        <div style="position: relative; transform: scale(2); transform-origin: center; margin: 60px 220px;">
+          <div style="display: flex; align-items: center; gap: 16px; height: 88px; padding: 12px; border-radius: 44px; background: rgba(14,15,26,0.86); border: 1px solid rgba(255,255,255,0.18); color: #fff; font-family: 'Atkinson Hyperlegible Next', sans-serif;">
+            <span style="width: 64px; height: 64px; border-radius: 32px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,90,117,0.9);"><svg viewBox="0 0 24 24" width="32" height="32" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9v11h14V9"></path><path d="M10 20v-6h4v6"></path></svg></span>
+            <span style="width: 1px; height: 40px; background: rgba(255,255,255,0.18);"></span>
+            <span style="width: 64px; height: 64px; border-radius: 32px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(255,90,117,0.9);"><svg viewBox="0 0 24 24" width="36" height="36" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M15 5l-7 7 7 7"></path></svg></span>
+            <span style="min-width: 104px; text-align: center; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 1px rgba(255,90,117,0.9);">3 / 12</span>
+            <span style="width: 64px; height: 64px; border-radius: 32px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.22); box-shadow: inset 0 0 0 1px rgba(255,90,117,0.9);"><svg viewBox="0 0 24 24" width="36" height="36" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><path d="M9 5l7 7-7 7"></path></svg></span>
+          </div>
+        </div>
+        <p style="margin: 0; font-family: ui-monospace, Consolas, monospace; font-size: 28px; color: #fff; background: #101114; padding: 8px 16px; border-radius: 6px;">2× scale · red outlines mark hit areas · Next shown pressed · same strip over light and dark</p>
+      </div>
+      <dl style="margin: 0; display: grid; grid-template-columns: 420px 1100px; gap: 0; font-size: 32px; line-height: 1.4; border-top: 2px solid #2a2a3c;">
+        <sc-for list="{{ stripSpec }}" as="r" hint-placeholder-count="0">
+          <dt style="padding: 20px 0; border-bottom: 2px solid #2a2a3c; color: #9a9cb2;">{{ r.k }}</dt>
+          <dd style="margin: 0; padding: 20px 0; border-bottom: 2px solid #2a2a3c; font-family: ui-monospace, Consolas, monospace; font-size: 28px;">{{ r.v }}</dd>
+        </sc-for>
+      </dl>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 32px;">
+      <h3 style="margin: 0; font-size: 48px;">Icon set · inline SVG, 24 grid, 2 px outline, round caps and joins, currentColor</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 24px;">
+        <sc-for list="{{ icons }}" as="i" hint-placeholder-count="0">
+          <div style="width: 220px; height: 200px; border-radius: 16px; background: #1a1a2e; border: 2px solid #2a2a3c; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+            <svg viewBox="0 0 24 24" width="64" height="64" style="fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;">{{ i.svg }}</svg>
+            <span style="font-family: ui-monospace, Consolas, monospace; font-size: 24px; color: #b4b6c6;">{{ i.name }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section id="contrast" style="display: flex; flex-direction: column; gap: 56px;">
+    <div style="display: flex; align-items: baseline; gap: 32px; border-bottom: 2px solid #2a2a3c; padding-bottom: 24px;">
+      <span style="font-family: ui-monospace, Consolas, monospace; font-size: 40px; padding: 6px 18px; border-radius: 10px; background: #f2f2f6; color: #0e0e18; font-weight: 700;">C</span>
+      <h2 style="margin: 0; font-size: 80px; line-height: 1.1;">Contrast check, WCAG AA</h2>
+      <span style="font-size: 36px; color: #9a9cb2;">Computed from tokens.css. Body text needs 4.5:1; large text (24 px+, or 18.66 px bold) and icons need 3:1.</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 120px 640px 560px 260px 200px; font-size: 30px; border-top: 2px solid #2a2a3c;">
+      <span style="padding: 16px 0; color: #9a9cb2; border-bottom: 2px solid #2a2a3c;"></span>
+      <span style="padding: 16px 0; color: #9a9cb2; border-bottom: 2px solid #2a2a3c;">Pair</span>
+      <span style="padding: 16px 0; color: #9a9cb2; border-bottom: 2px solid #2a2a3c;">Used for</span>
+      <span style="padding: 16px 0; color: #9a9cb2; border-bottom: 2px solid #2a2a3c;">Ratio / need</span>
+      <span style="padding: 16px 0; color: #9a9cb2; border-bottom: 2px solid #2a2a3c;">Result</span>
+      <sc-for list="{{ contrast }}" as="c" hint-placeholder-count="0">
+        <span style="padding: 14px 0; border-bottom: 2px solid #2a2a3c; display: flex; align-items: center;"><span style="width: 88px; height: 52px; border-radius: 8px; background: {{ c.bg }}; color: {{ c.fg }}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 28px; box-shadow: 0 0 0 1px #2a2a3c;">Aa</span></span>
+        <span style="padding: 14px 0; border-bottom: 2px solid #2a2a3c; font-family: ui-monospace, Consolas, monospace; font-size: 26px; display: flex; align-items: center;">{{ c.pair }}</span>
+        <span style="padding: 14px 0; border-bottom: 2px solid #2a2a3c; color: #b4b6c6; display: flex; align-items: center;">{{ c.use }}</span>
+        <span style="padding: 14px 0; border-bottom: 2px solid #2a2a3c; font-variant-numeric: tabular-nums; display: flex; align-items: center;">{{ c.ratio }}</span>
+        <span style="padding: 14px 0; border-bottom: 2px solid #2a2a3c; font-weight: 700; color: {{ c.color }}; display: flex; align-items: center;">{{ c.result }}</span>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="keyboard" style="display: flex; flex-direction: column; gap: 56px; max-width: 2600px;">
+    <div style="display: flex; align-items: baseline; gap: 32px; border-bottom: 2px solid #2a2a3c; padding-bottom: 24px;">
+      <span style="font-family: ui-monospace, Consolas, monospace; font-size: 40px; padding: 6px 18px; border-radius: 10px; background: #f2f2f6; color: #0e0e18; font-weight: 700;">K</span>
+      <h2 style="margin: 0; font-size: 80px; line-height: 1.1;">Keyboard-only walkthrough</h2>
+    </div>
+    <ol style="margin: 0; padding-left: 56px; display: flex; flex-direction: column; gap: 20px; font-size: 34px; line-height: 1.45;">
+      <sc-for list="{{ walkthrough }}" as="w" hint-placeholder-count="0"><li>{{ w }}</li></sc-for>
+    </ol>
+  </section>
+
+  <section id="files" style="display: flex; flex-direction: column; gap: 40px; max-width: 2600px;">
+    <div style="display: flex; align-items: baseline; gap: 32px; border-bottom: 2px solid #2a2a3c; padding-bottom: 24px;">
+      <span style="font-family: ui-monospace, Consolas, monospace; font-size: 40px; padding: 6px 18px; border-radius: 10px; background: #f2f2f6; color: #0e0e18; font-weight: 700;">F</span>
+      <h2 style="margin: 0; font-size: 80px; line-height: 1.1;">Files</h2>
+    </div>
+    <dl style="margin: 0; display: grid; grid-template-columns: 560px 1600px; font-size: 32px; line-height: 1.4;">
+      <sc-for list="{{ files }}" as="r" hint-placeholder-count="0">
+        <dt style="padding: 16px 0; border-bottom: 2px solid #2a2a3c; font-family: ui-monospace, Consolas, monospace; font-size: 28px;">{{ r.k }}</dt>
+        <dd style="margin: 0; padding: 16px 0; border-bottom: 2px solid #2a2a3c; color: #b4b6c6;">{{ r.v }}</dd>
+      </sc-for>
+    </dl>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { ready: false };
+  componentDidMount() {
+    const go = () => (window.KIOSK_MOCK ? this.setState({ ready: true }) : (this.t = setTimeout(go, 30)));
+    go();
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+
+  lum(hex) {
+    const n = parseInt(hex.slice(1), 16), c = [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  blend(fg, a, bg) {
+    const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), f = p(fg), b = p(bg);
+    return '#' + f.map((v, i) => Math.round(v * a + b[i] * (1 - a)).toString(16).padStart(2, '0')).join('');
+  }
+
+  renderVals() {
+    const M = window.KIOSK_MOCK;
+    const meta = {
+      'Library': ['1', 'Library (home)', 'Hub. Every path returns here.'],
+      'Opening': ['2', 'Opening', 'Covers the 2–8 s PowerPoint load.'],
+      'Player strip': ['3', 'Player control strip', 'Native WPF over PowerPoint; drawn here over mock slides.'],
+      'End': ['4', 'End of presentation', 'Returns to the library by itself after 15 s.'],
+      'Still there?': ['5', 'Still there?', 'Player only, after 3 min without input.'],
+      'Admin PIN': ['6', 'Admin PIN pad', 'Hold the logo 5 s, or Ctrl+Shift+Q. Staff only.'],
+      'Admin panel': ['7', 'Admin panel', 'Staff only. Error detail lives here, never on visitor screens.'],
+      'First-run setup': ['8', 'First-run setup', 'Shown once after install. Folder and PowerPoint status live in the admin panel.']
+    };
+    const groups = [];
+    (M ? M.PRESETS : []).forEach(p => {
+      let g = groups.find(x => x.key === p.group);
+      if (!g) { const m = meta[p.group] || ['', p.group, '']; groups.push(g = { key: p.group, num: m[0], name: m[1], note: m[2], items: [] }); }
+      g.items.push({ id: p.id, label: p.label, num: g.num + '.' + (g.items.length + 1), anchor: 's-' + p.id });
+    });
+
+    const R = (fg, bg, need) => { const a = this.lum(fg), b = this.lum(bg), r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); return { r, ok: r >= need }; };
+    const rows = [
+      ['#ffffff', '#1a1a2e', 4.5, 'text / bg', 'Titles, body'],
+      ['#ffffff', '#16213e', 4.5, 'text / surface', 'Card titles'],
+      ['#b4b6c6', '#1a1a2e', 4.5, 'text-muted / bg', 'Subtitle, end kicker'],
+      ['#b4b6c6', '#16213e', 4.5, 'text-muted / surface', 'Card description, slide count'],
+      ['#b4b6c6', '#22305a', 4.5, 'text-muted / surface-raised', 'Modal body'],
+      ['#12121f', '#ff5a75', 4.5, 'accent-contrast / accent', 'Primary buttons, Video badge'],
+      ['#ff5a75', '#1a1a2e', 3, 'accent / bg', 'Focus ring, progress bars'],
+      ['#ff5a75', '#22305a', 3, 'accent / surface-raised', 'Countdown numeral (104 px)'],
+      ['#ff5a75', '#16213e', 3, 'accent / surface', 'Focus ring on cards'],
+      ['#ff7b5c', '#22305a', 4.5, 'danger / surface-raised', 'Wrong PIN message'],
+      ['#ff7b5c', '#16213e', 4.5, 'danger / surface', 'Admin warnings'],
+      ['#12121f', '#ff7b5c', 4.5, '#12121f / danger', 'Exit kiosk confirm button'],
+      ['#5fd39a', '#1a1a2e', 4.5, 'ok / bg', 'Admin healthy status'],
+      ['#ffffff', this.blend('#0e0f1a', 0.86, '#ffffff'), 3, 'strip-icon / strip on white', 'Strip icons over a white slide'],
+      ['#ffffff', this.blend('#0e0f1a', 0.86, '#000000'), 3, 'strip-icon / strip on black', 'Strip icons over a black slide'],
+      ['#0e1a1c', '#4fd1b5', 4.5, 'alt: accent-contrast / accent', 'Alternate accent buttons'],
+      ['#4fd1b5', '#1a1a2e', 3, 'alt: accent / bg', 'Alternate focus ring']
+    ];
+    const contrast = rows.map(([fg, bg, need, pair, use]) => { const c = R(fg, bg, need); return { fg, bg, pair, use, ratio: c.r.toFixed(2) + ' / ' + need, result: c.ok ? 'Pass' : 'Fail', color: c.ok ? '#5fd39a' : '#ff7b5c' }; });
+
+    const h = React.createElement;
+    const P = d => h('path', { d });
+    const icons = [
+      ['home', [P('M3 10.5 12 3l9 7.5'), P('M5 9v11h14V9'), P('M10 20v-6h4v6')]],
+      ['chevron-left', [P('M15 5l-7 7 7 7')]],
+      ['chevron-right', [P('M9 5l7 7-7 7')]],
+      ['replay', [P('M3.5 12a8.5 8.5 0 1 0 2.6-6.1'), P('M3 4v5h5')]],
+      ['grid', [3.5, 13.5].flatMap(x => [3.5, 13.5].map(y => h('rect', { key: x + '-' + y, x, y, width: 7, height: 7, rx: 1.5 })))],
+      ['video', [h('rect', { x: 2.5, y: 6, width: 13, height: 12, rx: 2 }), P('M15.5 10.5 21.5 7v10l-6-3.5')]],
+      ['slides', [h('rect', { x: 3, y: 4, width: 18, height: 12, rx: 1.5 }), P('M12 16v4'), P('M8 20h8')]],
+      ['delete', [P('M21 5H9l-6 7 6 7h12z'), P('M17 9.5l-5 5'), P('M12 9.5l5 5')]],
+      ['check', [P('M5 12.5l4.5 4.5L19 7.5')]],
+      ['alert', [P('M12 3.5 2.5 20h19z'), P('M12 10v4.5'), P('M12 17.5v.01')]],
+      ['lock', [h('rect', { x: 5, y: 11, width: 14, height: 10, rx: 2 }), P('M8 11V7.5a4 4 0 0 1 8 0V11')]],
+      ['close', [P('M6 6l12 12'), P('M18 6 6 18')]],
+      ['refresh', [P('M20 12a8 8 0 1 1-2.4-5.7'), P('M20 4v5h-5')]],
+      ['folder', [P('M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z')]],
+      ['drive', [h('rect', { x: 3, y: 7, width: 18, height: 10, rx: 2 }), P('M7 12h.01'), P('M11 12h6')]],
+      ['user', [h('circle', { cx: 12, cy: 8, r: 4 }), P('M4 21a8 8 0 0 1 16 0')]],
+      ['power', [P('M12 3v9'), P('M6.3 6.3a8 8 0 1 0 11.4 0')]],
+      ['exit', [P('M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'), P('M16 17l5-5-5-5'), P('M21 12H9')]],
+      ['ok-circle', [h('circle', { cx: 12, cy: 12, r: 9 }), P('M8 12.5l3 3 5-6')]]
+    ].map(([name, kids]) => ({ name, svg: h(React.Fragment, null, ...kids.map((k, i) => React.cloneElement(k, { key: i }))) }));
+
+    return {
+      ready: this.state.ready && !!M,
+      groups,
+      contrast,
+      icons,
+      stripSpec: [
+        { k: 'Position', v: 'Bottom centre, 32 px above the bottom edge; topmost window over the PowerPoint show' },
+        { k: 'Container', v: '401 × 88 px · radius 44 · padding 12 · gap 16 between items' },
+        { k: 'Fill', v: '#0E0F1A at 86% opacity (no blur) · border 1 px #FFFFFF at 18%' },
+        { k: 'Order', v: 'Home · divider · Previous · counter · Next' },
+        { k: 'Buttons', v: '64 × 64 hit area · radius 32 · icon 32 px (Home) / 36 px (chevrons) · #FFFFFF' },
+        { k: 'Divider', v: '1 × 40 px · #FFFFFF at 18%' },
+        { k: 'Counter', v: 'Atkinson Hyperlegible Next Bold 24 px · tabular figures · min width 104 · "{n} / {total}" from strings' },
+        { k: 'Hover (mouse)', v: 'Button fill #FFFFFF at 10%' },
+        { k: 'Pressed', v: 'Fill #FFFFFF at 22% + scale 0.94, shown on pointer-down within 100 ms; action fires on release' },
+        { k: 'Disabled', v: 'Previous on slide 1: 40% opacity' },
+        { k: 'Auto-hide', v: 'After 4 s with no input: opacity 0 + scale 0.96 over 200 ms; hit-testing off while hidden' },
+        { k: 'Re-show', v: 'Any touch, mouse move or key. The tap that re-shows it still reaches PowerPoint' },
+        { k: 'Video slides', v: 'Same strip. Keep it out of the video object bounds; while video plays, Still there? is suppressed' },
+        { k: 'Keyboard', v: 'Right / Space / PgDn next · Left / PgUp previous · Esc home' },
+        { k: 'Motion off', v: 'All transitions 0 ms (config.motion = false)' }
+      ],
+      walkthrough: [
+        'Library: Arrow keys move focus card to card in grid order (focus ring 3 px accent, 2 px offset). Enter or Space opens the focused deck.',
+        'Opening: Esc returns to the library at any time; after 10 s the Back button appears and takes focus.',
+        'Player: Right, Space or Page Down for next; Left or Page Up for previous; Esc for home. Advancing past the last slide shows End of presentation.',
+        'End: "All presentations" has focus. Enter returns home, Tab then Enter on "Watch again" replays, Esc returns home. With no input it returns home after 15 s.',
+        'Still there?: "I\u2019m still here" has focus. Enter or Esc dismisses; Left/Right reach the secondary action.',
+          'Ctrl+Shift+Q anywhere opens the PIN pad. Type digits, Backspace deletes, Enter submits, Esc cancels. No lockout in the MVP. Arrow keys also move across the keypad.',
+        'Admin panel: Tab or arrows through Close, Reload library and Exit kiosk; Esc closes. Exit kiosk opens a confirm dialog with focus on Exit; Esc cancels.',
+        'First-run setup: type the PIN twice with digits + Enter, then Enter on Start kiosk.',
+        'Modals make everything behind them inert, so Tab never escapes the top layer.'
+      ],
+      files: [
+        { k: 'Kiosk App.dc.html', v: 'The visitor and staff frontend (screens 1, 2, 4–8, plus a mock show for screen 3). Open with ?state=<id> to land on any state.' },
+        { k: 'tokens.css', v: 'All colour, type, size and motion tokens as CSS custom properties, plus the alternate accent and motion-off switch.' },
+        { k: 'strings.js', v: 'Every visible string, ready for editing or translation.' },
+        { k: 'config.js', v: 'Brand slots (logo, title, subtitle, accent), timers, firstRun, dev switch.' },
+        { k: 'mock-data.js', v: 'Mock decks, the state presets, and KioskBridge: uses chrome.webview when hosted, otherwise a mock host. Commands: open, home, replay, pinSubmit, setPin, admin {reload | exit}.' },
+        { k: 'fonts/', v: 'Atkinson Hyperlegible Next (OFL), bundled woff2, plus OFL.txt.' },
+        { k: 'thumbs/, slides/', v: 'Placeholder slide-1 thumbnails and mock slides. Replace with renders from the host.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
