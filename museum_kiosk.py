@@ -3,7 +3,8 @@ Museum Kiosk Launcher (MVP)
 ---------------------------
 Fullscreen menu of the PowerPoint files in the presentations folder, each shown as a
 card with a preview of its first slide. Tap one to start it as a slideshow.
-Esc ends the show and the menu returns.
+Esc ends the show and the menu returns (watched globally, so it works whatever has focus).
+Right-click during a show is left to PowerPoint (its normal context menu).
 
 Presentations folder (first match wins):
     1. The folder saved in settings (chosen on first run, or in the settings panel)
@@ -15,9 +16,11 @@ Settings, log and preview cache:  C:\ProgramData\MuseumKiosk\
     kiosk.log
     thumbs\         first-slide previews (rebuilt automatically when a deck changes)
 
-Staff hotkeys (work during a show too):
-    Ctrl+Alt+S   settings panel: presentations folder, loop on/off   (not during a show)
-    Ctrl+Alt+Q   quit the kiosk (any running show is closed first)
+Staff settings panel (presentations folder, loop on/off, Quit Kiosk button):
+    Touch:     tap the screen corners in order  top-left > top-right > bottom-right > bottom-left
+               (within 5 seconds, on the menu screen)
+    Keyboard:  Ctrl+Alt+S   (not during a show)
+    Ctrl+Alt+Q quits the kiosk directly, during a show too (the show is closed first).
 
 Loop setting (applies to every deck, overrides the deck's own setting):
     on   loop until Esc
@@ -34,7 +37,7 @@ Requires PowerPoint installed and licensed. Provided as-is.
 #   0.0.x  minor changes (fixes, tweaks, text/config/color changes)
 #   0.x.0  major revisions (features added/removed, behavior changes) - reset the last digit to 0
 # This project stays in alpha: always 0.x.x, never bump to 1.0.0.
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 import ctypes
 import hashlib
@@ -43,6 +46,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox
@@ -82,10 +86,13 @@ CARD_PAD = 12                # space inside each card around the preview
 SCROLLBAR_W = 28
 TAP_TOLERANCE_PX = 12        # finger drift allowed before a tap becomes a scroll
 POPUP_SECONDS = 8            # error popups close themselves after this long
+CORNER_PX = 70               # size of each corner hot zone for the settings tap pattern
+CORNER_SECONDS = 5           # all four corner taps must happen within this time
 EXTENSIONS = {".pptx", ".ppt", ".ppsx", ".pps"}
 CREATE_NO_WINDOW = 0x08000000
 ERROR_ALREADY_EXISTS = 183
-VK_CONTROL, VK_MENU, VK_Q, VK_S = 0x11, 0x12, 0x51, 0x53   # VK_MENU = Alt
+SHOW_WINDOW_CLASS = "screenClass"   # PowerPoint's fullscreen slideshow window
+VK_ESCAPE, VK_CONTROL, VK_MENU, VK_Q, VK_S = 0x1B, 0x11, 0x12, 0x51, 0x53   # VK_MENU = Alt
 
 # PowerPoint COM constants
 MSO_TRUE, MSO_FALSE = -1, 0
@@ -175,6 +182,16 @@ def open_readonly(app, path):
     return app.Presentations.Open(str(path), MSO_TRUE, MSO_FALSE, MSO_FALSE)
 
 
+def close_if_open(app, path):
+    """Close any copy of this deck still open in PowerPoint, so the show starts fresh."""
+    target = str(path).lower()
+    for i in range(app.Presentations.Count, 0, -1):
+        pres = app.Presentations.Item(i)
+        if str(pres.FullName).lower() == target:
+            logging.warning("%s was still open in PowerPoint - closing it first", path.name)
+            pres.Close()
+
+
 def quit_powerpoint_if_idle():
     """Quit PowerPoint only if nothing else is open in it."""
     try:
@@ -201,9 +218,13 @@ class KioskLauncher:
         self.settings = load_settings()
         self.folder = resolve_folder(self.settings)
         self.pres = None              # presentation currently running as a show
+        self.show_hwnd = None         # its slideshow window
         self.show_active = False      # also True while a show is starting
         self.settings_win = None
         self.settings_key_latched = False
+        self.esc_latched = False
+        self.corner_step = 0          # progress through the 4-corner tap pattern
+        self.corner_started = 0.0
         self.popup = None
         self.popup_timer = None
         self.thumb_labels = {}        # path -> preview Label on the current cards
@@ -226,6 +247,7 @@ class KioskLauncher:
 
         self.build_ui()
         self.load_presentations()
+        root.bind_all("<ButtonPress-1>", self.on_corner_tap, add="+")
         root.after(200, self.poll_hotkeys)
         if self.folder is None:
             root.after(300, self.choose_folder)           # first run
@@ -469,7 +491,9 @@ class KioskLauncher:
 
         pres = None
         try:
-            pres = open_readonly(powerpoint(), path)
+            app = powerpoint()
+            close_if_open(app, path)
+            pres = open_readonly(app, path)
             show = pres.SlideShowSettings
             show.ShowType = PP_SHOW_TYPE_SPEAKER
             show.LoopUntilStopped = MSO_TRUE if self.settings.get("loop", True) else MSO_FALSE
@@ -494,29 +518,48 @@ class KioskLauncher:
             return
 
         try:
-            ctypes.windll.user32.SetForegroundWindow(window.HWND)
+            self.show_hwnd = int(window.HWND)
+            ctypes.windll.user32.SetForegroundWindow(self.show_hwnd)
         except Exception:
-            pass
+            self.show_hwnd = None                 # fall back to finding the window by class
         logging.info("Started %s (loop=%s)", path.name, self.settings.get("loop", True))
         self.pres = pres
         self.root.after(500, self.watch_show)
 
+    def show_window_open(self):
+        """Checked through Windows, not PowerPoint, so it can't fail while PowerPoint is busy
+        (e.g. its right-click menu is open)."""
+        user32 = ctypes.windll.user32
+        if self.show_hwnd:
+            return bool(user32.IsWindow(self.show_hwnd))
+        return bool(user32.FindWindowW(SHOW_WINDOW_CLASS, None))
+
     def watch_show(self):
         if not self.show_active or self.pres is None:
             return
-        try:
-            view = self.pres.SlideShowWindow.View
-            if view.State == PP_SLIDESHOW_DONE:   # non-looping show reached the end
-                view.Exit()
-                self.end_show("finished")
-                return
-        except Exception:                         # show window gone: Esc, or it ended itself
+        if not self.show_window_open():          # Esc, or the show ended on its own
             self.end_show("closed")
             return
+        try:
+            if self.pres.SlideShowWindow.View.State == PP_SLIDESHOW_DONE:
+                self.stop_show("reached the end")  # non-looping show: back to the menu
+        except Exception:
+            pass   # PowerPoint busy (e.g. right-click menu) - not a reason to end the show
         self.root.after(500, self.watch_show)
+
+    def stop_show(self, reason):
+        """Ask PowerPoint to end the show; watch_show sees the window close and cleans up."""
+        if not self.show_active or self.pres is None or not self.show_window_open():
+            return
+        logging.info("Stopping show: %s", reason)
+        try:
+            self.pres.SlideShowWindow.View.Exit()
+        except Exception:
+            logging.warning("PowerPoint busy - show not stopped (%s)", reason)
 
     def close_show(self):
         pres, self.pres = self.pres, None
+        self.show_hwnd = None
         self.show_active = False
         if pres is not None:
             try:
@@ -539,24 +582,52 @@ class KioskLauncher:
         self.root.focus_force()
         self.root.after(500, lambda: self.root.attributes("-topmost", False))
 
-    # ----- staff: hotkeys, settings, folder -----
+    # ----- staff: hotkeys, corner taps, settings, folder -----
     def poll_hotkeys(self):
         try:
             ctrl_alt = key_down(VK_CONTROL) and key_down(VK_MENU)
             quit_down = ctrl_alt and key_down(VK_Q)
             settings_down = ctrl_alt and key_down(VK_S)
+            esc_down = key_down(VK_ESCAPE)
         except Exception:
-            quit_down = settings_down = False
+            quit_down = settings_down = esc_down = False
         if quit_down:
             self.quit()
             return
         if settings_down and not self.settings_key_latched:
             self.open_settings()
+        if esc_down and not self.esc_latched:
+            self.stop_show("Esc")
         self.settings_key_latched = settings_down
+        self.esc_latched = esc_down
         self.root.after(150, self.poll_hotkeys)
 
+    def on_corner_tap(self, event):
+        """Settings open after tapping top-left, top-right, bottom-right, bottom-left in order."""
+        if self.show_active or self.settings_win is not None:
+            return
+        w, h = self.root.winfo_width(), self.root.winfo_height()
+        x, y = event.x_root - self.root.winfo_rootx(), event.y_root - self.root.winfo_rooty()
+        left, right = x < CORNER_PX, x >= w - CORNER_PX
+        top, bottom = y < CORNER_PX, y >= h - CORNER_PX
+        corner = (0 if top and left else 1 if top and right else
+                  2 if bottom and right else 3 if bottom and left else None)
+        now = time.monotonic()
+
+        if corner == 0:                                   # top-left always (re)starts
+            self.corner_step, self.corner_started = 1, now
+        elif (corner is not None and corner == self.corner_step
+              and now - self.corner_started <= CORNER_SECONDS):
+            self.corner_step += 1
+            if self.corner_step == 4:
+                self.corner_step = 0
+                logging.info("Settings opened by corner taps")
+                self.root.after_idle(self.open_settings)
+        else:
+            self.corner_step = 0
+
     def quit(self):
-        logging.info("Quit hotkey pressed")
+        logging.info("Kiosk quit")
         self.close_show()
         self.root.destroy()
 
@@ -614,8 +685,8 @@ class KioskLauncher:
             if self.choose_folder(parent=win):
                 folder_label.config(text=str(self.folder))
 
-        tk.Button(win, text="Change folder…", font=("Segoe UI", 12),
-                  command=change_folder).pack(anchor="w")
+        button = {"font": ("Segoe UI", 13), "padx": 16, "pady": 6}   # touch-sized
+        tk.Button(win, text="Change folder…", command=change_folder, **button).pack(anchor="w")
 
         loop_var = tk.BooleanVar(value=bool(self.settings.get("loop", True)))
 
@@ -631,9 +702,21 @@ class KioskLauncher:
                        selectcolor=BG_COLOR, activebackground=CARD_COLOR,
                        activeforeground=TEXT_COLOR).pack(anchor="w", pady=(22, 0))
 
-        text("Ctrl+Alt+Q quits the kiosk.", color=MUTED_COLOR, size=10, pady=(22, 0))
-        tk.Button(win, text="Close", font=("Segoe UI", 12), width=10,
-                  command=close).pack(anchor="e", pady=(10, 0))
+        text("Open this panel: tap the corners top-left, top-right, bottom-right, "
+             "bottom-left, or press Ctrl+Alt+S.  Ctrl+Alt+Q quits.",
+             color=MUTED_COLOR, size=10, pady=(22, 0))
+
+        def quit_kiosk():
+            if messagebox.askyesno("Quit Kiosk", "Close the kiosk and return to Windows?",
+                                   parent=win):
+                self.quit()
+
+        row = tk.Frame(win, bg=CARD_COLOR)
+        row.pack(fill="x", pady=(14, 0))
+        tk.Button(row, text="Quit Kiosk", command=quit_kiosk, fg=TEXT_COLOR, bg=ACCENT_COLOR,
+                  activeforeground=TEXT_COLOR, activebackground=ACCENT_COLOR,
+                  **button).pack(side="left")
+        tk.Button(row, text="Close", command=close, width=8, **button).pack(side="right")
 
         win.update_idletasks()
         x = (self.root.winfo_screenwidth() - win.winfo_reqwidth()) // 2
