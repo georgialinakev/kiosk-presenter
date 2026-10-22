@@ -37,7 +37,7 @@ Requires PowerPoint installed and licensed. Provided as-is.
 #   0.0.x  minor changes (fixes, tweaks, text/config/color changes)
 #   0.x.0  major revisions (features added/removed, behavior changes) - reset the last digit to 0
 # This project stays in alpha: always 0.x.x, never bump to 1.0.0.
-VERSION = "0.4.1"
+VERSION = "0.4.2"
 
 import ctypes
 import hashlib
@@ -524,6 +524,8 @@ class KioskLauncher:
         except Exception:
             self.show_hwnd = None                 # fall back to finding the window by class
         logging.info("Started %s (loop=%s)", path.name, self.settings.get("loop", True))
+        self.hide_popup()         # show is up; the menu underneath should be clean on return
+        self.root.update_idletasks()
         self.pres = pres
         self.root.after(500, self.watch_show)
 
