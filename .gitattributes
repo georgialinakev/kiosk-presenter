@@ -1,5 +1,0 @@
-* text=auto
-*.sln text eol=crlf
-*.pptx binary
-*.png binary
-*.woff2 binary

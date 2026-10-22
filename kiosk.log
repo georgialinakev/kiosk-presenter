@@ -1,0 +1,50 @@
+2026-10-09 14:05:14,933 INFO Kiosk starting
+2026-10-09 14:05:20,859 INFO Started Test1.pptx
+2026-10-09 14:08:16,136 INFO Kiosk starting
+2026-10-09 14:08:17,475 INFO Started Test1.pptx
+2026-10-09 14:08:37,655 INFO Show ended: slideshow closed
+2026-10-09 14:08:37,981 INFO PowerPoint closed (force=False)
+2026-10-09 14:08:39,085 INFO Started Test2.pptx
+2026-10-09 14:08:42,655 INFO Show ended: slideshow closed
+2026-10-09 14:08:42,988 INFO PowerPoint closed (force=False)
+2026-10-09 14:08:48,862 INFO Admin exit
+2026-10-09 14:11:01,620 INFO Kiosk starting
+2026-10-09 14:11:02,887 INFO Started Test1.pptx
+2026-10-09 14:13:19,510 INFO Show ended: slideshow closed
+2026-10-09 14:13:19,793 INFO PowerPoint closed (force=False)
+2026-10-09 14:13:20,659 INFO Started Test2.pptx
+2026-10-09 14:14:24,135 INFO Show ended: slideshow closed
+2026-10-09 14:14:24,406 INFO PowerPoint closed (force=False)
+2026-10-09 14:14:28,934 INFO Admin exit
+2026-10-09 14:15:05,440 INFO Kiosk starting
+2026-10-09 14:15:07,231 INFO Started Test2 (3).pptx
+2026-10-09 14:15:09,268 INFO Show ended: slideshow closed
+2026-10-09 14:15:09,597 INFO PowerPoint closed (force=False)
+2026-10-09 14:15:16,747 INFO Started Test2 (3).pptx
+2026-10-09 14:15:24,888 INFO Show ended: slideshow closed
+2026-10-09 14:15:25,119 INFO PowerPoint closed (force=False)
+2026-10-09 14:15:31,842 WARNING Failed admin password attempt
+2026-10-09 14:15:37,604 INFO Admin exit
+2026-10-09 14:15:40,997 INFO Kiosk starting
+2026-10-09 14:15:42,207 INFO Started Test2 (3).pptx
+2026-10-09 14:16:02,494 WARNING Slideshow never appeared within 20s
+2026-10-09 14:16:02,494 INFO Show ended: slideshow never appeared
+2026-10-09 14:16:02,694 INFO PowerPoint closed (force=True)
+2026-10-09 14:16:10,705 INFO Admin exit
+2026-10-09 14:21:08,786 INFO Kiosk starting
+2026-10-09 14:21:10,452 INFO Started Test2.pptx
+2026-10-09 14:21:22,076 INFO Show ended: slideshow closed
+2026-10-09 14:21:22,387 INFO PowerPoint closed (force=False)
+2026-10-09 14:21:23,439 INFO Started Test2.pptx
+2026-10-09 14:21:37,569 INFO Show ended: slideshow closed
+2026-10-09 14:21:37,807 INFO PowerPoint closed (force=False)
+2026-10-09 14:23:38,447 INFO Started Test2.pptx
+2026-10-09 14:23:50,550 INFO Show ended: slideshow closed
+2026-10-09 14:23:50,825 INFO PowerPoint closed (force=False)
+2026-10-09 14:23:54,060 INFO Admin exit
+2026-10-09 14:25:31,230 INFO Kiosk starting
+2026-10-09 14:25:33,844 INFO Started Test1.pptx
+2026-10-09 14:27:18,721 INFO Show ended: slideshow closed
+2026-10-09 14:27:18,969 INFO PowerPoint closed (force=False)
+2026-10-09 14:27:23,390 WARNING Failed admin password attempt
+2026-10-09 14:27:36,485 INFO Admin exit

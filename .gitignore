@@ -1,8 +1,0 @@
-bin/
-obj/
-out/
-TestResults/
-*.user
-.vs/
-node_modules/
-src/KioskPresenter.Setup/payload.zip
