@@ -37,7 +37,7 @@ Requires PowerPoint installed and licensed. Provided as-is.
 #   0.0.x  minor changes (fixes, tweaks, text/config/color changes)
 #   0.x.0  major revisions (features added/removed, behavior changes) - reset the last digit to 0
 # This project stays in alpha: always 0.x.x, never bump to 1.0.0.
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 
 import ctypes
 import hashlib
@@ -501,6 +501,7 @@ class KioskLauncher:
                 show.ShowPresenterView = MSO_FALSE   # no presenter view on multi-monitor PCs
             except Exception:
                 pass
+            pres.Saved = MSO_TRUE   # the settings above aren't real edits - no "save?" prompt
             self.root.attributes("-topmost", False)
             ctypes.windll.user32.AllowSetForegroundWindow(-1)   # ASFW_ANY
             window = show.Run()
@@ -541,6 +542,8 @@ class KioskLauncher:
             self.end_show("closed")
             return
         try:
+            if not self.pres.Saved:              # keep it "unchanged" so ending the show
+                self.pres.Saved = MSO_TRUE       # never asks to save the read-only deck
             if self.pres.SlideShowWindow.View.State == PP_SLIDESHOW_DONE:
                 self.stop_show("reached the end")  # non-looping show: back to the menu
         except Exception:
@@ -553,6 +556,7 @@ class KioskLauncher:
             return
         logging.info("Stopping show: %s", reason)
         try:
+            self.pres.Saved = MSO_TRUE
             self.pres.SlideShowWindow.View.Exit()
         except Exception:
             logging.warning("PowerPoint busy - show not stopped (%s)", reason)
