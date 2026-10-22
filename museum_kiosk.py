@@ -556,11 +556,13 @@ class KioskLauncher:
     def keep_back_button_on_top(self):
         """Re-assert topmost without taking focus from the show (PowerPoint can cover it,
         e.g. when a video starts)."""
+        win = self.back_win
+        if win is None:
+            return
         try:
-            user32 = ctypes.windll.user32
-            hwnd = user32.GetParent(self.back_win.winfo_id())   # Tk's outer window
-            user32.SetWindowPos(ctypes.c_void_p(hwnd), ctypes.c_void_p(-1),   # HWND_TOPMOST
-                                0, 0, 0, 0, SWP_NOMOVE_NOSIZE_NOACTIVATE)
+            hwnd = int(win.wm_frame(), 16)
+            ctypes.windll.user32.SetWindowPos(ctypes.c_void_p(hwnd), ctypes.c_void_p(-1),
+                                              0, 0, 0, 0, SWP_NOMOVE_NOSIZE_NOACTIVATE)
         except Exception:
             pass
 
@@ -583,8 +585,7 @@ class KioskLauncher:
         if not self.show_window_open():          # Esc, or the show ended on its own
             self.end_show("closed")
             return
-        if self.back_win is not None:
-            self.keep_back_button_on_top()
+        self.keep_back_button_on_top()
         try:
             if not self.pres.Saved:              # keep it "unchanged" so ending the show
                 self.pres.Saved = MSO_TRUE       # never asks to save the read-only deck
