@@ -3,7 +3,8 @@ Museum Kiosk Launcher (MVP)
 ---------------------------
 Fullscreen menu of the PowerPoint files in the presentations folder, each shown as a
 card with a preview of its first slide. Tap one to start it as a slideshow.
-Esc ends the show and the menu returns (watched globally, so it works whatever has focus).
+Esc or the "Back to menu" button (top-right, over the show) ends the show and the menu
+returns. Esc is watched globally, so it works whatever has focus.
 Right-click during a show is left to PowerPoint (its normal context menu).
 
 Presentations folder (first match wins):
@@ -37,7 +38,7 @@ Requires PowerPoint installed and licensed. Provided as-is.
 #   0.0.x  minor changes (fixes, tweaks, text/config/color changes)
 #   0.x.0  major revisions (features added/removed, behavior changes) - reset the last digit to 0
 # This project stays in alpha: always 0.x.x, never bump to 1.0.0.
-VERSION = "0.4.2"
+VERSION = "0.5.0"
 
 import ctypes
 import hashlib
@@ -71,6 +72,7 @@ DEFAULT_SETTINGS = {"presentations_folder": None, "loop": True}
 
 TITLE_TEXT = "Choose a Presentation"
 SUBTITLE_TEXT = "Tap a presentation to begin"
+BACK_BUTTON_TEXT = "✕  Back to menu"     # shown top-right over every running show
 COLUMNS = 3
 
 BG_COLOR = "#1a1a2e"
@@ -92,6 +94,7 @@ EXTENSIONS = {".pptx", ".ppt", ".ppsx", ".pps"}
 CREATE_NO_WINDOW = 0x08000000
 ERROR_ALREADY_EXISTS = 183
 SHOW_WINDOW_CLASS = "screenClass"   # PowerPoint's fullscreen slideshow window
+SWP_NOMOVE_NOSIZE_NOACTIVATE = 0x0002 | 0x0001 | 0x0010
 VK_ESCAPE, VK_CONTROL, VK_MENU, VK_Q, VK_S = 0x1B, 0x11, 0x12, 0x51, 0x53   # VK_MENU = Alt
 
 # PowerPoint COM constants
@@ -219,6 +222,7 @@ class KioskLauncher:
         self.folder = resolve_folder(self.settings)
         self.pres = None              # presentation currently running as a show
         self.show_hwnd = None         # its slideshow window
+        self.back_win = None          # "Back to menu" button shown over the slideshow
         self.show_active = False      # also True while a show is starting
         self.settings_win = None
         self.settings_key_latched = False
@@ -518,16 +522,51 @@ class KioskLauncher:
                             "Please let a staff member know.", auto_close=True)
             return
 
-        try:
-            self.show_hwnd = int(window.HWND)
-            ctypes.windll.user32.SetForegroundWindow(self.show_hwnd)
-        except Exception:
-            self.show_hwnd = None                 # fall back to finding the window by class
         logging.info("Started %s (loop=%s)", path.name, self.settings.get("loop", True))
         self.hide_popup()         # show is up; the menu underneath should be clean on return
-        self.root.update_idletasks()
+        self.show_back_button()
+        try:
+            self.show_hwnd = int(window.HWND)
+            ctypes.windll.user32.SetForegroundWindow(self.show_hwnd)   # keys go to the show
+        except Exception:
+            self.show_hwnd = None                 # fall back to finding the window by class
         self.pres = pres
         self.root.after(500, self.watch_show)
+
+    def show_back_button(self):
+        """Small always-on-top button over the slideshow so touch users can leave a show."""
+        self.hide_back_button()
+        win = tk.Toplevel(self.root, bg="#000000")
+        win.overrideredirect(True)                 # no title bar, no taskbar entry
+        win.attributes("-topmost", True)
+        try:
+            win.attributes("-alpha", 0.75)
+        except tk.TclError:
+            pass
+        label = tk.Label(win, text=BACK_BUTTON_TEXT, font=("Segoe UI", 16, "bold"),
+                         fg=TEXT_COLOR, bg="#000000", padx=22, pady=12, cursor="hand2")
+        label.pack()
+        for widget in (win, label):
+            widget.bind("<ButtonRelease-1>", lambda e: self.stop_show("back button"))
+        win.update_idletasks()
+        x = self.root.winfo_screenwidth() - win.winfo_reqwidth() - 24
+        win.geometry(f"+{x}+24")
+        self.back_win = win
+
+    def keep_back_button_on_top(self):
+        """Re-assert topmost without taking focus from the show (PowerPoint can cover it,
+        e.g. when a video starts)."""
+        try:
+            hwnd = int(self.back_win.wm_frame(), 16)
+            ctypes.windll.user32.SetWindowPos(ctypes.c_void_p(hwnd), ctypes.c_void_p(-1),
+                                              0, 0, 0, 0, SWP_NOMOVE_NOSIZE_NOACTIVATE)
+        except Exception:
+            pass
+
+    def hide_back_button(self):
+        if self.back_win is not None:
+            self.back_win.destroy()
+            self.back_win = None
 
     def show_window_open(self):
         """Checked through Windows, not PowerPoint, so it can't fail while PowerPoint is busy
@@ -543,6 +582,8 @@ class KioskLauncher:
         if not self.show_window_open():          # Esc, or the show ended on its own
             self.end_show("closed")
             return
+        if self.back_win is not None:
+            self.keep_back_button_on_top()
         try:
             if not self.pres.Saved:              # keep it "unchanged" so ending the show
                 self.pres.Saved = MSO_TRUE       # never asks to save the read-only deck
@@ -564,6 +605,7 @@ class KioskLauncher:
             logging.warning("PowerPoint busy - show not stopped (%s)", reason)
 
     def close_show(self):
+        self.hide_back_button()
         pres, self.pres = self.pres, None
         self.show_hwnd = None
         self.show_active = False
