@@ -1,4 +1,16 @@
-.venv/
-kiosk.log
-*.log
+# Python
 __pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# PyInstaller output
+build/
+dist/
+*.spec
+
+# Runtime log
+*.log
+
+# Office lock/temp files (e.g. Presentations/~$Deck.pptx while a deck is open)
+~$*

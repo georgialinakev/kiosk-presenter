@@ -1,27 +1,29 @@
-"""
+r"""
 Museum Kiosk Launcher (MVP)
 ---------------------------
-Fullscreen menu of the PowerPoint files in PRESENTATIONS_FOLDER.
+Fullscreen menu of the PowerPoint files in the "Presentations" folder that sits
+next to this script (or next to MuseumKiosk.exe when built).
 Tap/click one to start it as a slideshow. Esc ends the show and the menu returns.
 
 Looping is controlled by each presentation's own setting:
     Slide Show > Set Up Slide Show > "Loop continuously until 'Esc'"
 For an unattended loop the slides also need timings (Transitions > Advance Slide > After).
 
-Admin exit:     Ctrl+Shift+Q (works during a show too), then the admin password.
-                Any running show is force-closed first.
-New password:   py museum_kiosk.py --make-hash      (run from Python, not the exe)
-Build exe:      py -m PyInstaller --onefile --noconsole --name MuseumKiosk museum_kiosk.py
+Quit:       Ctrl+Alt+Q (works during a show too). Any running show is force-closed first.
+Build exe:  py -m PyInstaller --onefile --noconsole --name MuseumKiosk museum_kiosk.py
+            then put dist\MuseumKiosk.exe next to the Presentations folder.
 
 Requires PowerPoint installed and licensed. Python standard library only.
 Provided as-is.
 """
 
-version = "0.1.0"
+# VERSION - bump on every change:
+#   0.0.x  minor changes (fixes, tweaks, text/config/color changes)
+#   0.x.0  major revisions (features added/removed, behavior changes) - reset the last digit to 0
+# This project stays in alpha: always 0.x.x, never bump to 1.0.0.
+VERSION = "0.2.0"
 
 import ctypes
-import hashlib
-import hmac
 import logging
 import os
 import subprocess
@@ -29,11 +31,21 @@ import sys
 import time
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
+
+
+def app_dir():
+    """Folder containing the .exe (when built) or this .py file.
+    Used instead of the working directory, which changes depending on how the app is launched."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
 
 # ---------- CONFIGURATION ----------
-PRESENTATIONS_FOLDER = r"C:\Museum\Presentations"
-LOG_FILE = r"C:\Museum\kiosk.log"
+APP_DIR = app_dir()
+PRESENTATIONS_FOLDER = APP_DIR / "Presentations"
+LOG_FILE = APP_DIR / "kiosk.log"
 
 # None = auto-detect. Or a full path, e.g. r"C:\Program Files\Microsoft Office\root\Office16\POWERPNT.EXE"
 POWERPOINT_PATH = None
@@ -41,12 +53,6 @@ POWERPOINT_PATH = None
 # Close PowerPoint after each show so visitors never land in the editor.
 # Leave True on the kiosk. Closing is graceful (unsaved work prompts first).
 CLOSE_POWERPOINT_AFTER_SHOW = True
-
-# "salt_hex$hash_hex" from --make-hash.  THIS DEFAULT IS THE PASSWORD: changeme
-ADMIN_PASSWORD_HASH = (
-    "a3f1c07b9d2e4586b1c0d7e2f4a69318$"
-    "719321122c38af3acdc588a866d5671e4b7521f21a021f5268ed0162ecca770d"
-)
 
 TITLE_TEXT = "Choose a Presentation"
 SUBTITLE_TEXT = "Tap a presentation to begin"
@@ -59,40 +65,23 @@ TEXT_COLOR = "#ffffff"
 MUTED_COLOR = "#aaaaaa"
 # -----------------------------------
 
-PBKDF2_ITERATIONS = 200_000
 TAP_TOLERANCE_PX = 12        # finger drift allowed before a tap becomes a scroll
 START_GRACE_SECONDS = 20     # how long to wait for the slideshow to appear after launch
 SHOW_WINDOW_CLASS = "screenClass"   # PowerPoint's fullscreen slideshow window
 EXTENSIONS = {".pptx", ".ppt", ".ppsx", ".pps"}
 CREATE_NO_WINDOW = 0x08000000
 ERROR_ALREADY_EXISTS = 183
+VK_CONTROL, VK_MENU, VK_Q = 0x11, 0x12, 0x51   # VK_MENU = Alt
 
 
 # ---------- helpers ----------
 def setup_logging():
     try:
-        Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         logging.basicConfig(filename=LOG_FILE, level=logging.INFO,
                             format="%(asctime)s %(levelname)s %(message)s")
     except OSError:
         logging.basicConfig(level=logging.INFO)
-
-
-def make_hash(password):
-    salt = os.urandom(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, PBKDF2_ITERATIONS)
-    return f"{salt.hex()}${digest.hex()}"
-
-
-def verify_password(password, stored):
-    try:
-        salt_hex, hash_hex = stored.split("$", 1)
-        actual = hashlib.pbkdf2_hmac("sha256", password.encode(),
-                                     bytes.fromhex(salt_hex), PBKDF2_ITERATIONS)
-        return hmac.compare_digest(actual, bytes.fromhex(hash_hex))
-    except (ValueError, TypeError):
-        logging.exception("ADMIN_PASSWORD_HASH is malformed")
-        return False
 
 
 def find_powerpoint():
@@ -142,10 +131,10 @@ def close_powerpoint(force=False):
         logging.exception("taskkill failed")
 
 
-def admin_hotkey_down():
-    """Ctrl+Shift+Q, checked globally so it works while PowerPoint has focus."""
+def quit_hotkey_down():
+    """Ctrl+Alt+Q, checked globally so it works while PowerPoint has focus."""
     get = ctypes.windll.user32.GetAsyncKeyState
-    return all(get(vk) & 0x8000 for vk in (0x11, 0x10, 0x51))  # Ctrl, Shift, Q
+    return all(get(vk) & 0x8000 for vk in (VK_CONTROL, VK_MENU, VK_Q))
 
 
 # ---------- app ----------
@@ -155,10 +144,8 @@ class KioskLauncher:
         self.show_active = False
         self.show_started_at = 0.0
         self.seen_show = False
-        self.hotkey_latched = False
-        self.dialog_open = False
 
-        root.title("Museum Kiosk")
+        root.title(f"Museum Kiosk v{VERSION}")
         root.configure(bg=BG_COLOR)
         root.attributes("-fullscreen", True)
         root.protocol("WM_DELETE_WINDOW", lambda: None)   # blocks close button / Alt+F4
@@ -166,7 +153,7 @@ class KioskLauncher:
 
         self.build_ui()
         self.load_presentations()
-        root.after(200, self.poll_admin_hotkey)
+        root.after(200, self.poll_quit_hotkey)
 
     # ----- UI -----
     def build_ui(self):
@@ -196,8 +183,13 @@ class KioskLauncher:
         self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(
             int(-e.delta / 120) * 60, "units"))
 
+        # Version, bottom-right corner (created last so it sits on top).
+        tk.Label(self.root, text=f"v{VERSION}", font=("Segoe UI", 10),
+                 fg=MUTED_COLOR, bg=BG_COLOR).place(relx=1.0, rely=1.0, anchor="se",
+                                                    x=-12, y=-8)
+
     def list_presentations(self):
-        folder = Path(PRESENTATIONS_FOLDER)
+        folder = PRESENTATIONS_FOLDER
         if not folder.is_dir():
             return None
         files = [f for f in folder.iterdir()
@@ -330,61 +322,32 @@ class KioskLauncher:
         self.root.focus_force()
         self.root.after(500, lambda: self.root.attributes("-topmost", False))
 
-    # ----- admin exit -----
-    def poll_admin_hotkey(self):
+    # ----- quit -----
+    def poll_quit_hotkey(self):
         try:
-            down = admin_hotkey_down()
+            down = quit_hotkey_down()
         except Exception:
             down = False
-        if down and not self.hotkey_latched and not self.dialog_open:
-            self.hotkey_latched = True
-            self.admin_exit()
-        elif not down:
-            self.hotkey_latched = False
-        self.root.after(150, self.poll_admin_hotkey)
+        if down:
+            self.quit()
+            return
+        self.root.after(150, self.poll_quit_hotkey)
 
-    def admin_exit(self):
+    def quit(self):
+        logging.info("Quit hotkey pressed")
         if self.show_active:
             close_powerpoint(force=True)
             self.show_active = False
-        self.bring_to_front()
-        self.root.update()
-
-        self.dialog_open = True
-        try:
-            password = simpledialog.askstring("Admin", "Enter admin password:",
-                                              show="*", parent=self.root)
-        finally:
-            self.dialog_open = False
-
-        if password is None:
-            return
-        if verify_password(password, ADMIN_PASSWORD_HASH):
-            logging.info("Admin exit")
-            self.root.destroy()
-        else:
-            logging.warning("Failed admin password attempt")
-            messagebox.showerror("Access Denied", "Incorrect password.", parent=self.root)
+        self.root.destroy()
 
 
 def main():
-    if "--make-hash" in sys.argv:
-        import getpass
-        pw1 = getpass.getpass("New admin password: ")
-        pw2 = getpass.getpass("Repeat: ")
-        if not pw1 or pw1 != pw2:
-            print("Passwords empty or don't match.")
-            sys.exit(1)
-        print("\nPaste this into ADMIN_PASSWORD_HASH:\n")
-        print(make_hash(pw1))
-        return
-
     # Single instance: a second launch explains itself instead of silently exiting.
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     mutex = kernel32.CreateMutexW(None, False, "Local\\MuseumKioskLauncher")
     if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
         ctypes.windll.user32.MessageBoxW(
-            None, "The kiosk is already running.\n\nPress Ctrl+Shift+Q to bring it back.",
+            None, "The kiosk is already running.\n\nPress Ctrl+Alt+Q to quit it.",
             "Museum Kiosk", 0x40 | 0x40000)          # MB_ICONINFORMATION | MB_TOPMOST
         return
 
@@ -394,7 +357,7 @@ def main():
         pass
 
     setup_logging()
-    logging.info("Kiosk starting")
+    logging.info("Kiosk v%s starting (folder: %s)", VERSION, PRESENTATIONS_FOLDER)
     root = tk.Tk()
     KioskLauncher(root)
     root.mainloop()
