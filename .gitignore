@@ -4,10 +4,11 @@ __pycache__/
 .venv/
 venv/
 
-# PyInstaller output
+# PyInstaller output (build.bat puts MuseumKiosk.exe in the project folder)
 build/
 dist/
 *.spec
+*.exe
 
 # Runtime log
 *.log
