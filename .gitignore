@@ -1,0 +1,3 @@
+.venv/
+kiosk.log
+__pycache__/

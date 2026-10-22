@@ -17,6 +17,8 @@ Requires PowerPoint installed and licensed. Python standard library only.
 Provided as-is.
 """
 
+version = "0.1.0"
+
 import ctypes
 import hashlib
 import hmac
