@@ -38,7 +38,7 @@ Requires PowerPoint installed and licensed. Provided as-is.
 #   0.0.x  minor changes (fixes, tweaks, text/config/color changes)
 #   0.x.0  major revisions (features added/removed, behavior changes) - reset the last digit to 0
 # This project stays in alpha: always 0.x.x, never bump to 1.0.0.
-VERSION = "0.5.0"
+VERSION = "0.5.1"
 
 import ctypes
 import hashlib
@@ -557,9 +557,10 @@ class KioskLauncher:
         """Re-assert topmost without taking focus from the show (PowerPoint can cover it,
         e.g. when a video starts)."""
         try:
-            hwnd = int(self.back_win.wm_frame(), 16)
-            ctypes.windll.user32.SetWindowPos(ctypes.c_void_p(hwnd), ctypes.c_void_p(-1),
-                                              0, 0, 0, 0, SWP_NOMOVE_NOSIZE_NOACTIVATE)
+            user32 = ctypes.windll.user32
+            hwnd = user32.GetParent(self.back_win.winfo_id())   # Tk's outer window
+            user32.SetWindowPos(ctypes.c_void_p(hwnd), ctypes.c_void_p(-1),   # HWND_TOPMOST
+                                0, 0, 0, 0, SWP_NOMOVE_NOSIZE_NOACTIVATE)
         except Exception:
             pass
 
