@@ -4,7 +4,8 @@ Museum Kiosk Launcher (MVP)
 Fullscreen menu of the PowerPoint files in the presentations folder, each shown as a
 card with a preview of its first slide. Tap one to start it as a slideshow.
 Esc or the "Back to menu" button (top-right, over the show) ends the show and the menu
-returns. Esc is watched globally, so it works whatever has focus.
+returns. Esc is watched globally, so it works whatever has focus. The button fades out
+after a few idle seconds; any touch, click or key brings it back.
 Right-click during a show is left to PowerPoint (its normal context menu).
 
 Presentations folder (first match wins):
@@ -38,7 +39,7 @@ Requires PowerPoint installed and licensed. Provided as-is.
 #   0.0.x  minor changes (fixes, tweaks, text/config/color changes)
 #   0.x.0  major revisions (features added/removed, behavior changes) - reset the last digit to 0
 # This project stays in alpha: always 0.x.x, never bump to 1.0.0.
-VERSION = "0.5.1"
+VERSION = "0.6.0"
 
 import ctypes
 import hashlib
@@ -73,6 +74,8 @@ DEFAULT_SETTINGS = {"presentations_folder": None, "loop": True}
 TITLE_TEXT = "Choose a Presentation"
 SUBTITLE_TEXT = "Tap a presentation to begin"
 BACK_BUTTON_TEXT = "✕  Back to menu"     # shown top-right over every running show
+BACK_BUTTON_IDLE_SECONDS = 3             # fades out after this long with no touch/click/key
+BACK_BUTTON_ALPHA = 0.75                 # opacity when fully shown
 COLUMNS = 3
 
 BG_COLOR = "#1a1a2e"
@@ -95,6 +98,9 @@ CREATE_NO_WINDOW = 0x08000000
 ERROR_ALREADY_EXISTS = 183
 SHOW_WINDOW_CLASS = "screenClass"   # PowerPoint's fullscreen slideshow window
 SWP_NOMOVE_NOSIZE_NOACTIVATE = 0x0002 | 0x0001 | 0x0010
+SW_HIDE, SW_SHOWNOACTIVATE = 0, 4
+FADE_TICK_MS = 40            # back button: activity check / fade step interval
+FADE_STEPS = 8               # back button: steps per fade (8 x 40 ms = ~0.3 s)
 VK_ESCAPE, VK_CONTROL, VK_MENU, VK_Q, VK_S = 0x1B, 0x11, 0x12, 0x51, 0x53   # VK_MENU = Alt
 
 # PowerPoint COM constants
@@ -174,6 +180,18 @@ def key_down(vk):
     return bool(ctypes.windll.user32.GetAsyncKeyState(vk) & 0x8000)
 
 
+class LASTINPUTINFO(ctypes.Structure):
+    _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+
+
+def last_input_tick():
+    """Tick count of the last touch/mouse/keyboard input anywhere in the session.
+    Works even though PowerPoint, not this app, receives the touches."""
+    info = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
+    ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info))
+    return info.dwTime
+
+
 # ---------- PowerPoint (COM) ----------
 def powerpoint():
     """PowerPoint is single-instance: this starts it hidden, or attaches to the running one."""
@@ -223,6 +241,11 @@ class KioskLauncher:
         self.pres = None              # presentation currently running as a show
         self.show_hwnd = None         # its slideshow window
         self.back_win = None          # "Back to menu" button shown over the slideshow
+        self.back_job = None          # its fade timer
+        self.back_alpha = 0.0
+        self.back_visible = False
+        self.back_last_input = 0      # last Windows input tick seen
+        self.back_active_at = 0.0     # when the button was last woken by input
         self.show_active = False      # also True while a show is starting
         self.settings_win = None
         self.settings_key_latched = False
@@ -534,15 +557,13 @@ class KioskLauncher:
         self.root.after(500, self.watch_show)
 
     def show_back_button(self):
-        """Small always-on-top button over the slideshow so touch users can leave a show."""
+        """Small always-on-top button over the slideshow so touch users can leave a show.
+        It fades out after a few idle seconds; any touch, click or key brings it back."""
         self.hide_back_button()
         win = tk.Toplevel(self.root, bg="#000000")
         win.overrideredirect(True)                 # no title bar, no taskbar entry
         win.attributes("-topmost", True)
-        try:
-            win.attributes("-alpha", 0.75)
-        except tk.TclError:
-            pass
+        win.attributes("-alpha", BACK_BUTTON_ALPHA)
         label = tk.Label(win, text=BACK_BUTTON_TEXT, font=("Segoe UI", 16, "bold"),
                          fg=TEXT_COLOR, bg="#000000", padx=22, pady=12, cursor="hand2")
         label.pack()
@@ -552,12 +573,51 @@ class KioskLauncher:
         x = self.root.winfo_screenwidth() - win.winfo_reqwidth() - 24
         win.geometry(f"+{x}+24")
         self.back_win = win
+        self.back_alpha = BACK_BUTTON_ALPHA
+        self.back_visible = True
+        self.back_last_input = last_input_tick()
+        self.back_active_at = time.monotonic()
+        self.back_job = self.root.after(FADE_TICK_MS, self.update_back_button)
+
+    def update_back_button(self):
+        """Runs every FADE_TICK_MS while a show is up: fade in on activity, out when idle."""
+        self.back_job = None
+        win = self.back_win
+        if win is None:
+            return
+        now = time.monotonic()
+        tick = last_input_tick()
+        if tick != self.back_last_input:           # touch / click / key anywhere
+            self.back_last_input = tick
+            self.back_active_at = now
+
+        idle = now - self.back_active_at >= BACK_BUTTON_IDLE_SECONDS
+        target = 0.0 if idle else BACK_BUTTON_ALPHA
+        step = BACK_BUTTON_ALPHA / FADE_STEPS
+        if self.back_alpha < target:
+            self.back_alpha = min(target, self.back_alpha + step)
+        elif self.back_alpha > target:
+            self.back_alpha = max(target, self.back_alpha - step)
+
+        visible = self.back_alpha > 0
+        try:
+            win.attributes("-alpha", self.back_alpha)
+            if visible != self.back_visible:       # fully faded out: hide so it can't be tapped
+                self.back_visible = visible
+                hwnd = int(win.wm_frame(), 16)
+                ctypes.windll.user32.ShowWindow(ctypes.c_void_p(hwnd),
+                                                SW_SHOWNOACTIVATE if visible else SW_HIDE)
+                if visible:
+                    self.keep_back_button_on_top()
+        except Exception:
+            logging.exception("Back button fade failed")
+        self.back_job = self.root.after(FADE_TICK_MS, self.update_back_button)
 
     def keep_back_button_on_top(self):
         """Re-assert topmost without taking focus from the show (PowerPoint can cover it,
         e.g. when a video starts)."""
         win = self.back_win
-        if win is None:
+        if win is None or not self.back_visible:
             return
         try:
             hwnd = int(win.wm_frame(), 16)
@@ -567,6 +627,9 @@ class KioskLauncher:
             pass
 
     def hide_back_button(self):
+        if self.back_job is not None:
+            self.root.after_cancel(self.back_job)
+            self.back_job = None
         if self.back_win is not None:
             self.back_win.destroy()
             self.back_win = None
