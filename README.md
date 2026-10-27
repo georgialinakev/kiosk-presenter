@@ -26,7 +26,7 @@ services. Provided as-is.
 |---|---|
 | `museum_kiosk.py` | The whole app |
 | `requirements.txt` | `pywin32` (runtime), `pyinstaller` (build only) |
-| `build.bat` | Builds `MuseumKiosk.exe` into the project folder |
+| `build.bat` | Builds `MuseumKiosk-v<VERSION>.exe` into the project folder |
 | `Presentations/` | Test decks; used automatically when running from the project folder |
 
 ## Quick start (from source)
@@ -46,13 +46,18 @@ build.bat
 ```
 
 This installs the requirements (into `.venv` if it exists) and writes a single-file
-`MuseumKiosk.exe` to the project folder. Rebuild after every code change.
+`MuseumKiosk-v<VERSION>.exe` (e.g. `MuseumKiosk-v0.7.1.exe`) to the project folder, with
+the version read from `museum_kiosk.py`. Rebuild after every code change. Older builds
+stay in the folder until you delete them.
 
 ---
 
 ## Using the kiosk
 
 ### Visitors
+- **Presentations: tap or swipe left** for the next slide, **swipe right** for the previous
+  one. This works on every slide, including timed ones; timed slides also move on by
+  themselves.
 - **Tap a card** to play it full screen. Presentation cards say *Tap to start*; video cards
   say *Tap to play*.
 - **Drag** to scroll when there are more items than fit on screen. The scrollbar only
@@ -100,8 +105,11 @@ Presentations and videos go in the **same folder**.
 - **Preview** = slide 1 for decks, a frame about 2 seconds in for videos. Previews are made
   once and rebuilt automatically when a file changes. If PowerPoint can't open a video,
   its card shows **▶ Video** instead of a frame; the video still plays.
-- **For unattended slideshows, give every slide a timing:** Transitions > Advance Slide >
-  After. Without timings, slides only advance on a tap.
+- **Slide advancing needs no preparation.** Slides without timings wait for a tap or
+  swipe. Timed slides (Transitions > Advance Slide > After) advance by themselves *and*
+  can still be tapped or swiped. The app switches on "On Mouse Click" for every slide and
+  "Use timings, if present" for the deck; like the loop setting, this only affects the
+  copy it plays and never changes the file.
 - New or changed files are picked up whenever the menu reappears (after playback ends).
   No restart is needed.
 - Files downloaded or emailed are automatically **unblocked** (the "from the internet"
@@ -119,7 +127,7 @@ Presentations and videos go in the **same folder**.
 The first match wins:
 
 1. The folder saved in settings (chosen on first run, or in the settings panel)
-2. A `Presentations` folder next to `MuseumKiosk.exe` / `museum_kiosk.py`
+2. A `Presentations` folder next to the exe / `museum_kiosk.py`
 3. Neither: the app asks for a folder on startup
 
 If a saved folder goes missing (unplugged drive, network share not ready), the menu shows
@@ -151,7 +159,10 @@ To **reset** the app: delete `settings.json` (the folder prompt returns), `thumb
 
 1. Install PowerPoint, sign in or activate it, and open it once by hand to clear any
    first-run prompts.
-2. Copy `MuseumKiosk.exe` somewhere permanent, e.g. `C:\MuseumKiosk\`.
+2. Copy the built `MuseumKiosk-v<VERSION>.exe` somewhere permanent and name it plain
+   `MuseumKiosk.exe`, e.g. `C:\MuseumKiosk\MuseumKiosk.exe`. The fixed name keeps the
+   Startup shortcut working when you upgrade: overwrite the file with the new build.
+   The running version shows bottom-right on the menu.
 3. Put the presentations and videos in a folder of your choice, e.g. `D:\Kiosk Presentations\`.
 4. Create a standard local account for the kiosk and set it to sign in automatically
    (e.g. Sysinternals Autologon).
@@ -177,7 +188,8 @@ To **reset** the app: delete `settings.json` (the folder prompt returns), `thumb
 | The app freezes when a deck is tapped | PowerPoint is showing a dialog (activation, repair, password) behind the show. Fix PowerPoint or the deck, then Ctrl+Alt+Q and restart. |
 | "No preview" on a card | PowerPoint couldn't open the deck to render slide 1. Check `kiosk.log`. |
 | "▶ Video" instead of a preview | PowerPoint couldn't open the video for a preview frame. Playback is unaffected. |
-| A deck doesn't advance on its own | Its slides have no timings (see Preparing content). |
+| A deck doesn't advance on its own | Its slides have no timings, so it waits for a tap or swipe. Add timings if it should run unattended. |
+| Tap/swipe doesn't change slides | Check `kiosk.log` for "Could not adjust slide advancing". If that appears, the deck plays with its own settings; re-save it in PowerPoint and try again. |
 | A deck or video ends instead of looping | Loop is off in settings. |
 | "Presentations folder not found" | The saved folder is missing. Reconnect it, or change it in settings. |
 | "The kiosk is already running" | Another copy is open. Ctrl+Alt+Q quits it. |

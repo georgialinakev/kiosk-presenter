@@ -13,7 +13,7 @@ Right-click during a slideshow is left to PowerPoint (its normal context menu).
 
 Presentations folder (first match wins):
     1. The folder saved in settings (chosen on first run, or in the settings panel)
-    2. A "Presentations" folder next to this script / MuseumKiosk.exe
+    2. A "Presentations" folder next to this script / the exe
     3. Neither -> the app asks for a folder on startup
 
 Settings, log and caches:  C:\ProgramData\MuseumKiosk\
@@ -32,10 +32,13 @@ Staff settings panel (presentations folder, loop on/off, Quit Kiosk button):
 Loop setting (applies to every deck and video, overrides a deck's own setting):
     on   loop until Esc / Back to menu
     off  play once, then return to the menu
-Unattended slide advancing still needs slide timings (Transitions > Advance Slide > After).
+Slide advancing (applied to every deck, in memory only - files are never changed):
+    tap / swipe left   next slide, on every slide (timed or not)
+    swipe right        previous slide
+    timed slides       also advance by themselves (Transitions > Advance Slide > After)
 
 Run from source:  py -m pip install -r requirements.txt   then   py museum_kiosk.py
-Build exe:        build.bat   (puts MuseumKiosk.exe in the project folder)
+Build exe:        build.bat   (puts MuseumKiosk-v<VERSION>.exe in the project folder)
 
 Requires PowerPoint installed and licensed (decks + all previews) and Microsoft Edge
 (video playback). Provided as-is.
@@ -45,7 +48,7 @@ Requires PowerPoint installed and licensed (decks + all previews) and Microsoft 
 #   0.0.x  minor changes (fixes, tweaks, text/config/color changes)
 #   0.x.0  major revisions (features added/removed, behavior changes) - reset the last digit to 0
 # This project stays in alpha: always 0.x.x, never bump to 1.0.0.
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 
 import ctypes
 import hashlib
@@ -124,6 +127,7 @@ MSO_TRUE, MSO_FALSE = -1, 0
 PP_SHOW_TYPE_SPEAKER = 1     # normal full-screen show (even if the deck is set to "window")
 PP_SLIDESHOW_DONE = 5        # View.State once a non-looping show reaches its end
 PP_LAYOUT_BLANK = 12
+PP_ADVANCE_USE_TIMINGS = 2   # SlideShowSettings.AdvanceMode: use slide timings if present
 
 # Video player page. __TOKEN__ is a unique window title the app uses to find the Edge
 # window; the page adds " ended" / " error" to it so the app knows when playback stops.
@@ -326,6 +330,22 @@ def close_if_open(app, path):
             pres.Close()
 
 
+def enable_touch_advance(pres):
+    """Make every slide advance on tap/swipe ("On Mouse Click"), timed or not.
+    Timings are left as they are. Returns (slide count, timed slide count)."""
+    count = pres.Slides.Count
+    timed = 0
+    for i in range(1, count + 1):
+        try:
+            transition = pres.Slides.Item(i).SlideShowTransition
+            transition.AdvanceOnClick = MSO_TRUE
+            if transition.AdvanceOnTime:
+                timed += 1
+        except Exception:
+            logging.warning("Could not enable tap/swipe on slide %d", i)
+    return count, timed
+
+
 def quit_powerpoint_if_idle():
     """Quit PowerPoint only if nothing else is open in it."""
     try:
@@ -379,8 +399,16 @@ class PowerPointShow:
         pres = open_readonly(app, path)
         try:
             show = pres.SlideShowSettings
-            show.ShowType = PP_SHOW_TYPE_SPEAKER
+            show.ShowType = PP_SHOW_TYPE_SPEAKER     # "browsed at a kiosk" would ignore touch
             show.LoopUntilStopped = MSO_TRUE if loop else MSO_FALSE
+            try:
+                show.AdvanceMode = PP_ADVANCE_USE_TIMINGS  # timed slides play by themselves
+                slides, timed = enable_touch_advance(pres)
+                logging.info("%s: %d slides, %d timed - tap/swipe advances all",
+                             path.name, slides, timed)
+            except Exception:                    # never block playback over this
+                logging.exception("Could not adjust slide advancing for %s - playing as-is",
+                                  path.name)
             try:
                 show.ShowPresenterView = MSO_FALSE   # no presenter view on multi-monitor PCs
             except Exception:
